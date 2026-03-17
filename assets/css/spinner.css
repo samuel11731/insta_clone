@@ -1,0 +1,97 @@
+/* ─────────────────────────────────────────────────────
+   Instagram "Posting..." spinner for the Share button
+   ───────────────────────────────────────────────────── */
+
+/* The spinning ring icon shown inside the button */
+@keyframes insta-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes insta-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+}
+
+/* ── Normal state ── */
+.share-btn {
+    position: relative;
+    transition: all 300ms ease;
+}
+
+/* ── Loading state  (Phoenix adds .phx-submit-loading to the <form>) ── */
+
+/* Shrink button into a circle while loading */
+.phx-submit-loading .share-btn {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: transparent !important;
+    flex-shrink: 0;
+}
+
+/* Instagram rainbow spinning border */
+.phx-submit-loading .share-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    padding: 3px;
+    background: conic-gradient(#833ab4 0deg,
+            #c13584 60deg,
+            #e1306c 120deg,
+            #fd1d1d 160deg,
+            #f77737 200deg,
+            #fcb045 240deg,
+            #f77737 280deg,
+            #fd1d1d 300deg,
+            #e1306c 320deg,
+            #833ab4 360deg);
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    animation: insta-spin 1s linear infinite;
+}
+
+/* "Posting" text label below the spinner */
+.share-btn-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    transition: all 300ms ease;
+}
+
+.share-btn-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #833ab4;
+    display: none;
+    animation: insta-pulse 1.2s ease infinite;
+}
+
+.phx-submit-loading .share-btn-label {
+    display: block;
+}
+
+/* Hide the normal "Share" text while loading */
+.phx-submit-loading .share-btn-text {
+    display: none;
+}

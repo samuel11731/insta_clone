@@ -1,0 +1,125 @@
+<div class="max-w-[470px] mx-auto pb-safe">
+  <!-- Top Bar -->
+  <div class="bg-white border-b border-gray-100">
+    <div class="flex justify-between items-center px-4 py-3">
+     
+     
+      <!-- Right: Settings/Menu -->
+  
+        <button class="text-black hover:text-gray-600">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-7 h-7">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+        </button>
+
+
+         <!-- Left: Username -->
+      <h1 class="text-xl font-bold flex items-center gap-1">
+        {@user.username}
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-gray-800">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+        </svg>
+      </h1>
+
+
+
+        
+            
+        <button class="text-black hover:text-gray-600">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-7 h-7">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  
+
+  <!-- Profile Header -->
+  <div class="px-4 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <!-- Avatar -->
+      <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-yellow-400 to-purple-600 p-[2px]">
+        <div class="w-full h-full rounded-full border-2 border-white overflow-hidden">
+          <img src={"https://ui-avatars.com/api/?name=#{@user.username}&background=random"} class="w-full h-full object-cover" />
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="flex flex-1 justify-around text-center ml-4">
+        <div class="flex flex-col">
+          <span class="font-bold text-lg"><%= @post_count %></span>
+          <span class="text-xs text-gray-500">Posts</span>
+        </div>
+        <div class="flex flex-col">
+          <span class="font-bold text-lg"><%= @follower_count %></span>
+          <span class="text-xs text-gray-500">Followers</span>
+        </div>
+        <div class="flex flex-col">
+          <span class="font-bold text-lg"><%= @following_count %></span>
+          <span class="text-xs text-gray-500">Following</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bio -->
+    <div class="mb-4">
+      <p class="font-bold">{@user.full_name}</p>
+      <p class="text-sm">Digital Creator 📸</p>
+      <p class="text-sm">Welcome to my clone app!</p>
+    </div>
+
+    
+    <!-- Edit Profile or Follow Button --> 
+<%= if @is_own_profile do %>
+  <button class="w-full py-1.5 bg-gray-100 font-semibold text-sm rounded-md border border-gray-200 hover:bg-gray-200 transition">
+    Edit Profile
+  </button>
+<% else %>
+  <%= if @is_following do %>
+    <button phx-click="unfollow" class="w-full py-1.5 bg-gray-100 font-semibold text-sm rounded-md border border-gray-200 hover:bg-gray-200 transition">
+      Following
+    </button>
+  <% else %>
+    <button phx-click="follow" class="w-full py-1.5 bg-blue-500 text-white font-semibold text-sm rounded-md hover:bg-blue-600 transition">
+      Follow
+    </button>
+  <% end %>
+<% end %>
+
+  <!-- Highlights (Optional) -->
+  <div class="flex gap-4 overflow-x-auto px-4 pb-4 mb-2 scrollbar-hide">
+    <div class="flex flex-col items-center flex-shrink-0">
+      <div class="w-16 h-16 rounded-full bg-gray-100 border border-gray-200 p-1 flex items-center justify-center">
+         <span class="text-2xl text-gray-400">+</span>
+      </div>
+      <span class="text-xs mt-1">New</span>
+    </div>
+  </div>
+
+  <!-- Content Tabs -->
+  <div class="border-t border-gray-200 mt-2">
+    <div class="flex justify-around">
+      <button class="flex-1 py-3 border-b-2 border-black flex justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+        </svg>
+      </button>
+      <button class="flex-1 py-3 border-b border-transparent flex justify-center text-gray-400">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Posts Grid -->
+<div class="grid grid-cols-3 gap-0.5">
+    <%= for post <- @posts do %>
+      <div class="aspect-square bg-gray-200">
+        <!-- Make sure to check if post.image_path exists! -->
+        <img src={post.image_path} class="w-full h-full object-cover" />
+      </div>
+    <% end %>
+  </div>
+</div>
+</div>
