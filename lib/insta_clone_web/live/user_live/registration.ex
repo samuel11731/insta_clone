@@ -6,36 +6,76 @@ defmodule InstaCloneWeb.UserLive.Registration do
 
   def render(assigns) do
     ~H"""
-    <div class="mx-auto max-w-sm">
-      <div class="text-center">
-        <.header>
-          Register for an account
-          <:subtitle>
-            Already registered?
-            <.link navigate={~p"/users/log-in"} class="font-semibold text-brand hover:underline">
+    <div class="min-h-screen flex flex-col justify-center items-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-sm w-full space-y-4">
+        <div class="bg-white p-10 border border-gray-300 rounded-sm">
+          <div class="flex justify-center mb-6">
+            <img class="h-12 w-auto" src="/images/logo.svg" alt="InstaClone" />
+          </div>
+
+          <h2 class="text-center text-gray-500 font-bold text-lg mb-6 leading-tight">
+            Sign up to see photos and videos from your friends.
+          </h2>
+
+          <.form
+            for={@form}
+            id="registration_form"
+            phx-submit="save"
+            phx-change="validate"
+            class="space-y-2"
+          >
+            <.input
+              field={@form[:email]}
+              type="email"
+              placeholder="Email"
+              required
+              class="bg-gray-50 border-gray-300 text-sm focus:ring-0 focus:border-gray-400"
+            />
+            <.input
+              field={@form[:full_name]}
+              type="text"
+              placeholder="Full Name"
+              required
+              class="bg-gray-50 border-gray-300 text-sm focus:ring-0 focus:border-gray-400"
+            />
+            <.input
+              field={@form[:username]}
+              type="text"
+              placeholder="Username"
+              required
+              phx-debounce="blur"
+              class="bg-gray-50 border-gray-300 text-sm focus:ring-0 focus:border-gray-400"
+            />
+            <.input
+              field={@form[:password]}
+              type="password"
+              placeholder="Password"
+              required
+              class="bg-gray-50 border-gray-300 text-sm focus:ring-0 focus:border-gray-400"
+            />
+
+            <p class="text-center text-xs text-gray-500 py-4">
+              By signing up, you agree to our Terms, Data Policy and Cookies Policy.
+            </p>
+
+            <.button
+              phx-disable-with="Creating account..."
+              class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-1.5 rounded-md text-sm transition duration-200"
+            >
+              Sign up
+            </.button>
+          </.form>
+        </div>
+
+        <div class="bg-white p-6 border border-gray-300 rounded-sm text-center">
+          <p class="text-sm text-gray-600">
+            Have an account?
+            <.link navigate={~p"/users/log-in"} class="font-bold text-sky-500 hover:text-sky-600">
               Log in
             </.link>
-            to your account now.
-          </:subtitle>
-        </.header>
+          </p>
+        </div>
       </div>
-
-      <.form
-        for={@form}
-        id="registration_form"
-        phx-submit="save"
-        phx-change="validate"
-        class="mt-6 space-y-4"
-      >
-        <.input field={@form[:username]} type="text" label="Username" required phx-debounce="blur" />
-        <.input field={@form[:full_name]} type="text" label="Full Name" required />
-        <.input field={@form[:email]} type="email" label="Email" required />
-        <.input field={@form[:password]} type="password" label="Password" required />
-
-        <.button phx-disable-with="Creating account..." class="w-full">
-          Create an account
-        </.button>
-      </.form>
     </div>
     """
   end

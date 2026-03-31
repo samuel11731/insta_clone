@@ -6,89 +6,100 @@ defmodule InstaCloneWeb.UserLive.Login do
   @impl true
   def render(assigns) do
     ~H"""
-    <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <div class="mx-auto max-w-sm space-y-4">
-        <div class="text-center">
-          <.header>
-            <p>Log in</p>
-            <:subtitle>
-              <%= if @current_scope do %>
-                You need to reauthenticate to perform sensitive actions on your account.
-              <% else %>
-                Don't have an account? <.link
-                  navigate={~p"/users/register"}
-                  class="font-semibold text-brand hover:underline"
-                  phx-no-format
-                >Sign up</.link> for an account now.
-              <% end %>
-            </:subtitle>
-          </.header>
-        </div>
+    <div class="min-h-screen flex flex-col justify-center items-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-sm w-full space-y-4">
+        <div class="bg-white p-10 border border-gray-300 rounded-sm">
+          <div class="flex justify-center mb-8">
+            <img class="h-12 w-auto" src="/images/logo.svg" alt="InstaClone" />
+          </div>
 
-        <div :if={local_mail_adapter?()} class="alert alert-info">
-          <.icon name="hero-information-circle" class="size-6 shrink-0" />
-          <div>
-            <p>You are running the local mail adapter.</p>
-            <p>
-              To see sent emails, visit <.link href="/dev/mailbox" class="underline">the mailbox page</.link>.
-            </p>
+          <div :if={local_mail_adapter?()} class="mb-4 p-3 bg-blue-50 text-blue-700 text-xs rounded-md">
+            <p>Local mail adapter: <.link href="/dev/mailbox" class="underline font-bold">view mailbox</.link></p>
+          </div>
+
+          <div class="space-y-6">
+            <.form
+              :let={f}
+              for={@form}
+              id="login_form_password"
+              action={~p"/users/log-in"}
+              phx-submit="submit_password"
+              phx-trigger-action={@trigger_submit}
+            >
+              <div class="space-y-2">
+                <.input
+                  readonly={!!@current_scope}
+                  field={f[:email]}
+                  type="email"
+                  placeholder="Email"
+                  autocomplete="email"
+                  required
+                  class="bg-gray-50 border-gray-300 text-sm focus:ring-0 focus:border-gray-400"
+                />
+                <.input
+                  field={@form[:password]}
+                  type="password"
+                  placeholder="Password"
+                  autocomplete="current-password"
+                  class="bg-gray-50 border-gray-300 text-sm focus:ring-0 focus:border-gray-400"
+                />
+              </div>
+
+              <.button class="w-full mt-4 bg-sky-500 hover:bg-sky-600 text-white font-bold py-1.5 rounded-md text-sm transition duration-200">
+                Log in
+              </.button>
+
+              <div class="flex items-center my-4">
+                <div class="flex-grow border-t border-gray-300"></div>
+                <span class="flex-shrink mx-4 text-gray-400 text-xs font-bold uppercase">OR</span>
+                <div class="flex-grow border-t border-gray-300"></div>
+              </div>
+
+              <div class="text-center">
+                <.link
+                  phx-click={JS.toggle(to: "#magic-link-section") |> JS.toggle(to: "#password-login-hint")}
+                  class="text-sm font-semibold text-blue-900"
+                >
+                  Log in with magic link
+                </.link>
+              </div>
+            </.form>
+
+            <div id="magic-link-section" class="hidden pt-4 border-t border-gray-100">
+              <.form
+                :let={f}
+                for={@form}
+                id="login_form_magic"
+                action={~p"/users/log-in"}
+                phx-submit="submit_magic"
+              >
+                <.input
+                  readonly={!!@current_scope}
+                  field={f[:email]}
+                  type="email"
+                  placeholder="Email for magic link"
+                  autocomplete="email"
+                  required
+                  class="bg-gray-50 border-gray-300 text-sm focus:ring-0 focus:border-gray-400"
+                />
+                <.button class="w-full mt-2 bg-sky-100 hover:bg-sky-200 text-sky-700 font-bold py-1.5 rounded-md text-sm transition duration-200">
+                  Send Link
+                </.button>
+              </.form>
+            </div>
           </div>
         </div>
 
-        <.form
-          :let={f}
-          for={@form}
-          id="login_form_magic"
-          action={~p"/users/log-in"}
-          phx-submit="submit_magic"
-        >
-          <.input
-            readonly={!!@current_scope}
-            field={f[:email]}
-            type="email"
-            label="Email"
-            autocomplete="email"
-            required
-            phx-mounted={JS.focus()}
-          />
-          <.button class="btn btn-primary w-full">
-            Log in with email <span aria-hidden="true">→</span>
-          </.button>
-        </.form>
-
-        <div class="divider">or</div>
-
-        <.form
-          :let={f}
-          for={@form}
-          id="login_form_password"
-          action={~p"/users/log-in"}
-          phx-submit="submit_password"
-          phx-trigger-action={@trigger_submit}
-        >
-          <.input
-            readonly={!!@current_scope}
-            field={f[:email]}
-            type="email"
-            label="Email"
-            autocomplete="email"
-            required
-          />
-          <.input
-            field={@form[:password]}
-            type="password"
-            label="Password"
-            autocomplete="current-password"
-          />
-          <.button class="btn btn-primary w-full" name={@form[:remember_me].name} value="true">
-            Log in and stay logged in <span aria-hidden="true">→</span>
-          </.button>
-          <.button class="btn btn-primary btn-soft w-full mt-2">
-            Log in only this time
-          </.button>
-        </.form>
+        <div class="bg-white p-6 border border-gray-300 rounded-sm text-center">
+          <p class="text-sm text-gray-600">
+            Don't have an account?
+            <.link navigate={~p"/users/register"} class="font-bold text-sky-500 hover:text-sky-600">
+              Sign up
+            </.link>
+          </p>
+        </div>
       </div>
-    </Layouts.app>
+    </div>
     """
   end
 

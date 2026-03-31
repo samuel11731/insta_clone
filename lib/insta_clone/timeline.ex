@@ -1,11 +1,53 @@
 defmodule InstaClone.Timeline do
   import Ecto.Query, warn: false
-  alias InstaClone.Repo
-  alias InstaClone.Timeline.CommentLike
-  alias InstaClone.Timeline.Post
+  alias InstaClone.Timeline.{Post, Like, Comment, CommentLike, Story}
   alias InstaClone.Accounts.Scope
-  alias InstaClone.Timeline.Like
-  alias InstaClone.Timeline.Comment
+  alias InstaClone.Repo
+
+  @doc """
+  Lists all active stories for the current user and those they follow.
+  """
+  def list_active_stories(current_user) do
+    now = DateTime.utc_now()
+    following_ids = InstaClone.Accounts.get_following(current_user) |> Enum.map(& &1.id)
+    user_ids = [current_user.id | following_ids]
+
+    from(s in Story,
+      where: s.user_id in ^user_ids and s.expires_at > ^now,
+      join: u in assoc(s, :user),
+      preload: [user: u],
+      order_by: [asc: s.inserted_at]
+    )
+    |> Repo.all()
+  end
+
+  @doc """
+  Groups active stories by user for display in the story tray.
+  """
+  def group_active_stories_by_user(stories) do
+    stories
+    |> Enum.group_by(& &1.user_id)
+    |> Enum.map(fn {_user_id, user_stories} ->
+      %{
+        user: List.first(user_stories).user,
+        stories: user_stories
+      }
+    end)
+  end
+
+  @doc """
+  Creates a story.
+  """
+  def create_story(user, attrs \\ %{}) do
+    # Set expires_at to 24 hours from now by default
+    expires_at = DateTime.add(DateTime.utc_now(), 24, :hour)
+    attrs = Map.put_new(attrs, "expires_at", expires_at)
+    attrs = Map.put(attrs, "user_id", user.id)
+
+    %Story{}
+    |> Story.changeset(attrs)
+    |> Repo.insert()
+  end
 
   def subscribe_posts(%Scope{} = scope) do
     key = scope.user.id
