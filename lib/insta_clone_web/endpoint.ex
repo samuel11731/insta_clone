@@ -24,8 +24,21 @@ defmodule InstaCloneWeb.Endpoint do
     at: "/",
     from: :insta_clone,
     gzip: not code_reloading?,
-    only: InstaCloneWeb.static_paths(),
-    raise_on_missing_only: code_reloading?
+    only: InstaCloneWeb.static_paths()
+
+  # Serve runtime-uploaded files (images, stories, etc.) directly from the
+  # filesystem path. The `from:` using :otp_app above only covers files that
+  # exist at compile time; this second plug covers files written at runtime.
+  plug Plug.Static,
+    at: "/images",
+    from: Path.join([:code.priv_dir(:insta_clone), "static", "images"]),
+    gzip: false
+
+  # Story uploads go here — outside priv/static/ so dev live-reload doesn't loop
+  plug Plug.Static,
+    at: "/uploads",
+    from: Path.join([:code.priv_dir(:insta_clone), "uploads"]),
+    gzip: false
 
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.

@@ -1,23 +1,26 @@
 defmodule InstaCloneWeb.TimelineLive.Components do
-  use Phoenix.Component
-
-
+  use InstaCloneWeb, :html
 
   attr :comments, :list, required: true
   attr :active_post_id, :any, required: true
   attr :comment_changeset, :any, required: true
   attr :current_user, :map, required: true
-  attr :reply_to_comment_id, :any, required: true
   attr :reply_to_user, :any, required: true
   attr :expanded_replies, :any, required: true
-  attr :current_scope, :any, required: true
+  attr :current_scope, :map, required: true
+  attr :open_comment_menu, :any, default: nil
+  attr :active_post, :any, default: nil
+  attr :on_close, :any, default: nil
+  attr :reply_to_comment_id, :any, default: nil
 
   def comments_sheet(assigns) do
     ~H"""
-    <%= if @active_post_id do %>
-      <div class="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm" phx-click="close-comments"></div>
+    <%= if @active_post_id && @active_post do %>
+      <% # Overlay %>
+      <div class="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm" phx-click="close-comments"></div>
 
-      <div class="fixed bottom-0 left-0 right-0 z-[70] mx-auto w-full max-w-[470px] bg-white rounded-t-3xl shadow-xl h-[75vh] flex flex-col animate-slide-up transform transition-transform">
+      <% # Mobile Bottom Sheet %>
+      <div class="md:hidden fixed bottom-0 left-0 right-0 z-[70] mx-auto w-full max-w-[470px] bg-white rounded-t-3xl shadow-xl h-[75vh] grid grid-rows-[auto_auto_1fr_auto] overflow-hidden animate-slide-up transform transition-transform">
         <div class="w-full h-6 flex items-center justify-center pt-2" phx-click="close-comments">
           <div class="w-12 h-1 bg-gray-300 rounded-full cursor-pointer"></div>
         </div>
@@ -26,522 +29,523 @@ defmodule InstaCloneWeb.TimelineLive.Components do
           <h3 class="font-bold text-sm">Comments</h3>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-4 space-y-5">
-          <%= if @comments == [] do %>
-            <div class="text-center text-gray-400 mt-10">
-              <p>No comments yet.</p>
-              <p class="text-xs">Start the conversation.</p>
+        <div
+          class="overflow-y-auto overscroll-contain p-4 space-y-5 scroll-smooth"
+          id="comments-scroll-area-mobile"
+        >
+          <% top_level_comments = Enum.filter(@comments, &is_nil(&1.parent_id)) %>
+
+          <%= if Enum.empty?(top_level_comments) do %>
+            <div class="flex flex-col items-center justify-center h-48 text-gray-400">
+              <p class="font-semibold text-gray-500">No comments yet.</p>
+              <p class="text-sm">Start the conversation.</p>
             </div>
-          <% end %>
-
-          <%= for comment <- Enum.filter(@comments, fn c -> is_nil(c.parent_id) end) do %>
-
-           <div class="flex gap-3">
-
-              <div class="w-8 h-8 rounded-full overflow-hidden bg-gray-200 shrink-0 border border-gray-100">
-                <img
-                  src={"https://ui-avatars.com/api/?name=#{comment.user.username}&background=random"}
-                 class="w-full h-full object-cover"
-                />
-              </div>
-
-              <div class="flex-1">
-                <div class="text-sm">
-                  <span class="font-semibold mr-2">{comment.user.username}</span>
-                  <span class="text-gray-500 text-xs">
-                    · {InstaClone.Timeline.format_timestamp(comment.inserted_at)}
-                  </span>
-                </div>
-
-                <div class="text-sm">
-                  <span>{comment.body}</span>
-                </div>
-
-                <button
-                  phx-click="reply-to"
-                  phx-value-id={comment.id}
-                  phx-value-username={comment.user.username}
-                  class="text-xs text-gray-500 font-semibold hover:text-gray-800 text-xs mt-0.5"
-                >
-                  Reply
-                </button>
-
-                <%= if Enum.count(@comments, fn c -> c.parent_id == comment.id end) > 0 do %>
-                  <button
-                    phx-click="toggle-replies"
-                    phx-value-id={comment.id}
-                    class="flex items-center gap-1 hover:text-gray-800 text-xs text-gray-500 font-semibold pl-4"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke-width="2"
-                      stroke="currentColor"
-                      class="w-3 h-3"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d={
-                          if MapSet.member?(@expanded_replies, comment.id),
-                            do: "M19.5 8.25l-7.5 7.5-7.5-7.5",
-                            else: "M8.25 4.5l7.5 7.5-7.5 7.5"
-                        }
-                      />
-                    </svg>
-                    <span>
-                      <%= if MapSet.member?(@expanded_replies, comment.id) do %>
-                        Hide replies
-                      <% else %>
-                        View {Enum.count(@comments, fn c -> c.parent_id == comment.id end)} {if Enum.count(
-                                                                                                  @comments,
-                                                                                                  fn c ->
-                                                                                                    c.parent_id ==
-                                                                                                      comment.id
-                                                                                                  end
-                                                                                                ) == 1,
-                                                                                                do:
-                                                                                                  "reply",
-                                                                                                else:
-                                                                                                  "replies"}
-                      <% end %>
-                    </span>
-                  </button>
-                <% end %>
-
-                <%= if MapSet.member?(@expanded_replies, comment.id) do %>
-                  <%= for reply <- Enum.filter(@comments, fn c -> c.parent_id == comment.id end) do %>
-                    <div class="flex gap-3 mt-3 pl-0">
-                      <div class="w-6 h-6 rounded-full overflow-hidden bg-gray-200 shrink-0 border border-gray-100">
-                        <img
-                          src={"https://ui-avatars.com/api/?name=#{reply.user.username}&background=random"}
-                          class="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div class="flex-1">
-                        <div class="text-sm">
-                          <span class="font-semibold mr-1">{reply.user.username}</span>
-                          <span class="text-blue-500 mr-1">@{comment.user.username}</span>
-                          <span>{reply.body}</span>
-                        </div>
-                        <div class="flex items-center gap-4 mt-1 text-xs text-gray-500 font-semibold">
-                          <span>{InstaClone.Timeline.format_timestamp(reply.inserted_at)}</span>
-                          <button
-                            phx-click="reply-to"
-                            phx-value-id={comment.id}
-                            phx-value-username={comment.user.username}
-                            class="hover:text-gray-800"
-                          >
-                            Reply
-                          </button>
-                        </div>
-                      </div>
-                      <button
-                        phx-click={
-                          if InstaClone.Timeline.comment_liked?(@current_scope, reply),
-                            do: "unlike-comment",
-                            else: "like-comment"
-                        }
-                        phx-value-id={reply.id}
-                        class="self-start mt-2 flex items-center gap-1 group"
-                      >
-                        <%= if InstaClone.Timeline.comment_liked?(@current_scope, reply) do %>
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                            class="w-4 h-4 text-red-500 transition-all duration-150 group-active:scale-125"
-                          >
-                            <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
-                          </svg>
-                        <% else %>
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="1.5"
-                            stroke="currentColor"
-                            class="w-4 h-4 text-gray-400 transition-all duration-150 group-active:scale-125"
-                          >
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
-                            />
-                          </svg>
-                        <% end %>
-                        <%= if InstaClone.Timeline.count_comment_likes(reply) > 0 do %>
-                          <span class="text-xs text-gray-600">
-                            {InstaClone.Timeline.count_comment_likes(reply)}
-                          </span>
-                        <% end %>
-                      </button>
-                    </div>
-                  <% end %>
-                <% end %>
-              </div>
-              <button
-                phx-click={
-                  if InstaClone.Timeline.comment_liked?(@current_scope, comment),
-                    do: "unlike-comment",
-                    else: "like-comment"
-                }
-                phx-value-id={comment.id}
-                class="self-start mt-2 flex items-center gap-1 group"
-              >
-                <%= if InstaClone.Timeline.comment_liked?(@current_scope, comment) do %>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    class="w-4 h-4 text-red-500 transition-all duration-150 group-active:scale-125"
-                  >
-                    <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
-                  </svg>
-                <% else %>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                    class="w-4 h-4 text-gray-400 transition-all duration-150 group-active:scale-125"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
-                    />
-                  </svg>
-                <% end %>
-                <%= if InstaClone.Timeline.count_comment_likes(comment) > 0 do %>
-                  <span class="text-xs text-gray-600">
-                    {InstaClone.Timeline.count_comment_likes(comment)}
-                  </span>
-                <% end %>
-              </button>
-            </div>
+          <% else %>
+            <.render_comments_list
+              comments={top_level_comments}
+              all_comments={@comments}
+              current_scope={@current_scope}
+              expanded_replies={@expanded_replies}
+              open_comment_menu={@open_comment_menu}
+            />
           <% end %>
         </div>
 
-        <%= if @reply_to_user do %>
-          <div class="flex items-center justify-between bg-gray-50 px-4 py-2 text-xs text-gray-500 mb-2 rounded-lg">
-            <span>Replying to <span class="font-bold text-black">@{@reply_to_user}</span></span>
-            <button phx-click="cancel-reply" class="text-gray-400 hover:text-red-500 font-bold">
-              ✕
-            </button>
-          </div>
-        <% end %>
+        <.comment_form_section
+          comment_changeset={@comment_changeset}
+          reply_to_user={@reply_to_user}
+          current_user={@current_user}
+        />
+      </div>
 
-    <!-- Input Area -->
-        <div class="border-t border-gray-100 p-4 pb-8 shrink-0 bg-white">
-          <.form
-            :let={f}
-            for={@comment_changeset}
-            phx-submit="save-comment"
-            class="flex items-center gap-3"
-          >
-            <div class="w-8 h-8 rounded-full overflow-hidden bg-red-500 shrink-0">
-              <img
-                src={"https://ui-avatars.com/api/?name=#{@current_user.username}"}
-                class="w-full h-full object-cover"
+      <% # Desktop Split-Pane Modal %>
+      <div class="hidden md:flex fixed inset-0 z-[70] items-center justify-center p-10 pointer-events-none">
+        <div class="pointer-events-auto bg-white w-full max-w-[1035px] h-full max-h-[90vh] flex rounded-lg overflow-hidden shadow-2xl">
+          <% # Left Column: Media %>
+          <div class="flex-1 bg-black flex items-center justify-center min-w-0 relative">
+            <%= if String.ends_with?(@active_post.image_path || "", [".mp4", ".mov"]) do %>
+              <video
+                src={@active_post.image_path}
+                autoplay
+                muted
+                loop
+                playsinline
+                class="w-full h-full object-contain"
+              />
+            <% else %>
+              <img src={@active_post.image_path} class="w-full h-full object-contain" />
+            <% end %>
+          </div>
+
+          <% # Right Column: Details & Comments %>
+          <div class="w-[400px] flex flex-col bg-white border-l border-gray-100">
+            <% # Header: User Info %>
+            <div class="flex items-center justify-between p-4 border-b border-gray-100">
+              <div class="flex items-center gap-3">
+                <.link
+                  navigate={"/#{@active_post.user.username}"}
+                  class="w-8 h-8 rounded-full overflow-hidden border border-gray-100"
+                >
+                  <.user_avatar
+                    src={@active_post.user.avatar_path}
+                    username={@active_post.user.username}
+                    class="w-full h-full object-cover"
+                  />
+                </.link>
+                <.link
+                  navigate={"/#{@active_post.user.username}"}
+                  class="text-sm font-bold hover:text-gray-600 transition-colors"
+                >
+                  {@active_post.user.username}
+                </.link>
+              </div>
+              <button
+                phx-click="close-comments"
+                class="text-gray-400 hover:text-black transition-colors"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke-width="2"
+                  stroke="currentColor"
+                  class="w-5 h-5"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <% # Scrollable Body: Caption + Comments %>
+            <div class="flex-1 overflow-y-auto p-4 space-y-6" id="comments-scroll-area-desktop">
+              <% # Caption Row %>
+              <div class="flex gap-3">
+                <.link
+                  navigate={"/#{@active_post.user.username}"}
+                  class="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-gray-100"
+                >
+                  <.user_avatar
+                    src={@active_post.user.avatar_path}
+                    username={@active_post.user.username}
+                    class="w-full h-full object-cover"
+                  />
+                </.link>
+                <div class="text-sm">
+                  <p>
+                    <.link
+                      navigate={"/#{@active_post.user.username}"}
+                      class="font-bold mr-2 hover:text-gray-600 transition-colors"
+                    >
+                      {@active_post.user.username}
+                    </.link>
+                    <span class="text-gray-900">{@active_post.caption}</span>
+                  </p>
+                  <p class="text-gray-500 text-[10px] uppercase mt-2">
+                    {InstaClone.Timeline.format_timestamp(@active_post.inserted_at)}
+                  </p>
+                </div>
+              </div>
+
+              <% # Comments List %>
+              <% top_level_comments = Enum.filter(@comments, &is_nil(&1.parent_id)) %>
+
+              <%= if Enum.empty?(top_level_comments) do %>
+                <div class="flex flex-col items-center justify-center h-full text-gray-400">
+                  <p class="font-semibold text-gray-900 text-sm">No comments yet.</p>
+                  <p class="text-sm">Start the conversation.</p>
+                </div>
+              <% else %>
+                <.render_comments_list
+                  comments={top_level_comments}
+                  all_comments={@comments}
+                  current_scope={@current_scope}
+                  expanded_replies={@expanded_replies}
+                  open_comment_menu={@open_comment_menu}
+                />
+              <% end %>
+            </div>
+
+            <% # Footer: Actions, Stats, Input %>
+            <div class="border-t border-gray-100">
+              <div class="p-4 bg-white">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="flex items-center gap-4">
+                    <button
+                      phx-click="toggle-like"
+                      phx-value-id={@active_post.id}
+                      class="hover:scale-110 transition-transform active:scale-95"
+                    >
+                      <%= if InstaClone.Timeline.liked?(@current_scope, @active_post) do %>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          class="w-6 h-6 text-red-500"
+                        >
+                          <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+                        </svg>
+                      <% else %>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke-width="1.5"
+                          stroke="currentColor"
+                          class="w-6 h-6 hover:text-gray-600"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                          />
+                        </svg>
+                      <% end %>
+                    </button>
+                    <button class="hover:text-gray-600 transition-colors">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor"
+                        class="w-6 h-6"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785 0.5.5 0 00.37.839 7.79 7.79 0 003.733-1.041 3.96 3.96 0 011.758-.454c.76 0 1.48.167 2.203.454z"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+                <p class="font-bold text-sm mb-1">
+                  {InstaClone.Timeline.count_likes(@active_post)} likes
+                </p>
+                <p class="text-gray-500 text-[10px] uppercase">
+                  {InstaClone.Timeline.format_timestamp(@active_post.inserted_at)}
+                </p>
+              </div>
+              <.comment_form_section
+                comment_changeset={@comment_changeset}
+                reply_to_user={@reply_to_user}
+                current_user={@current_user}
               />
             </div>
-            <div class="flex-1 relative">
-              <input
-                type="text"
-                name={f[:body].name}
-                id={f[:body].id}
-                value={f[:body].value}
-                placeholder="Add a comment..."
-                class="w-full bg-transparent border-none outline-none focus:ring-0 focus:outline-none text-sm placeholder-gray-400"
-                autocomplete="off"
-              />
-            </div>
-            <button
-              type="submit"
-              class="text-blue-500 font-semibold text-sm disabled:opacity-50 hover:text-blue-600"
-            >
-              Post
-            </button>
-          </.form>
+          </div>
         </div>
       </div>
     <% end %>
     """
   end
-end
-defmodule InstaCloneWeb.TimelineLive.Components do
-  use Phoenix.Component
 
-
-  attr :comments, :list, required: true
-  attr :active_post_id, :any, required: true
-  attr :comment_changeset, :any, required: true
-  attr :current_user, :map, required: true
-  attr :reply_to_comment_id, :any, required: true
-  attr :reply_to_user, :any, required: true
-  attr :expanded_replies, :any, required: true
-  attr :current_scope, :any, required: true
-
-  def comments_sheet(assigns) do
+  defp comment_form_section(assigns) do
     ~H"""
-    <%= if @active_post_id do %>
-      <div class="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm" phx-click="close-comments"></div>
-
-      <div class="fixed bottom-0 left-0 right-0 z-[70] mx-auto w-full max-w-[470px] bg-white rounded-t-3xl shadow-xl h-[75vh] flex flex-col animate-slide-up transform transition-transform">
-        <div class="w-full h-6 flex items-center justify-center pt-2" phx-click="close-comments">
-          <div class="w-12 h-1 bg-gray-300 rounded-full cursor-pointer"></div>
+    <div class="border-t border-gray-100 p-4 bg-white w-full">
+      <%= if @reply_to_user do %>
+        <div class="flex items-center justify-between bg-gray-50 px-4 py-2 text-xs text-gray-500 mb-2 rounded-lg">
+          <span>Replying to <span class="font-bold text-black">@{@reply_to_user}</span></span>
+          <button
+            phx-click="cancel-reply"
+            class="text-gray-400 hover:text-red-500 font-bold transition-colors"
+          >
+            ✕
+          </button>
         </div>
+      <% end %>
 
-        <div class="border-b border-gray-100 p-3 text-center relative shrink-0">
-          <h3 class="font-bold text-sm">Comments</h3>
+      <.form
+        :let={f}
+        for={@comment_changeset}
+        phx-submit="save-comment"
+        class="flex items-center gap-3"
+      >
+        <div class="w-8 h-8 rounded-full overflow-hidden bg-gray-200 shrink-0">
+          <.user_avatar
+            src={@current_user.avatar_path}
+            username={@current_user.username}
+            class="w-full h-full object-cover"
+          />
         </div>
+        <div class="flex-1 relative">
+          <input
+            type="text"
+            name={f[:body].name}
+            id={f[:body].id}
+            value={f[:body].value}
+            placeholder="Add a comment..."
+            class="w-full bg-transparent border-none outline-none focus:ring-0 focus:outline-none text-sm placeholder-gray-400"
+            autocomplete="off"
+          />
+        </div>
+        <button
+          type="submit"
+          class="text-blue-500 font-semibold text-sm disabled:opacity-50 hover:text-blue-600 transition-colors"
+        >
+          Post
+        </button>
+      </.form>
+    </div>
+    """
+  end
 
-        <div class="flex-1 overflow-y-auto p-4 space-y-5">
-          <%= if @comments == [] do %>
-            <div class="text-center text-gray-400 mt-10">
-              <p>No comments yet.</p>
-              <p class="text-xs">Start the conversation.</p>
-            </div>
-          <% end %>
+  defp render_comments_list(assigns) do
+    assigns = assign_new(assigns, :all_comments, fn -> assigns.comments end)
 
-          <%= for comment <- Enum.filter(@comments, fn c -> is_nil(c.parent_id) end) do %>
+    ~H"""
+    <div class="space-y-6">
+      <%= for comment <- @comments do %>
+        <div class="flex gap-3 group/comment" id={"comment-#{comment.id}"}>
+          <.link
+            navigate={"/#{comment.user.username}"}
+            class="w-8 h-8 rounded-full overflow-hidden bg-gray-200 shrink-0 border border-gray-100"
+          >
+            <.user_avatar
+              src={comment.user.avatar_path}
+              username={comment.user.username}
+              class="w-full h-full object-cover"
+            />
+          </.link>
 
-           <div class="flex gap-3">
-
-              <.link navigate={"/#{comment.user.username}"} class="w-8 h-8 rounded-full overflow-hidden bg-gray-200 shrink-0 border border-gray-100">
-                <img
-                  src={"https://ui-avatars.com/api/?name=#{comment.user.username}&background=random"}
-                 class="w-full h-full object-cover"
-                />
-              </.link>
-
-              <div class="flex-1">
-                <div class="text-sm">
-                  <.link navigate={"/#{comment.user.username}"} class="font-semibold mr-2">{comment.user.username}</.link>
-                  <span class="text-gray-500 text-xs">
-                    · {InstaClone.Timeline.format_timestamp(comment.inserted_at)}
-                  </span>
-                </div>
-
-                <div class="text-sm">
-                  <span>{comment.body}</span>
-                </div>
-
-                <button
-                  phx-click="reply-to"
-                  phx-value-id={comment.id}
-                  phx-value-username={comment.user.username}
-                  class="text-xs text-gray-500 font-semibold hover:text-gray-800 text-xs mt-0.5"
+          <div class="flex-1">
+            <div class="text-sm">
+              <p>
+                <.link
+                  navigate={"/#{comment.user.username}"}
+                  class="font-bold mr-2 hover:text-gray-600 transition-colors"
                 >
-                  Reply
-                </button>
+                  {comment.user.username}
+                </.link>
+                <span class="text-gray-900">{comment.body}</span>
+              </p>
+            </div>
+            <div class="flex items-center gap-4 mt-1 text-[10px] text-gray-500 font-semibold uppercase">
+              <span>{InstaClone.Timeline.format_timestamp(comment.inserted_at)}</span>
+              <%= if InstaClone.Timeline.count_comment_likes(comment) > 0 do %>
+                <span>{InstaClone.Timeline.count_comment_likes(comment)} likes</span>
+              <% end %>
+              <button
+                phx-click="reply-to"
+                phx-value-id={comment.id}
+                phx-value-username={comment.user.username}
+                class="hover:text-gray-800 transition-colors"
+              >
+                Reply
+              </button>
 
-                <%= if Enum.count(@comments, fn c -> c.parent_id == comment.id end) > 0 do %>
-                  <button
-                    phx-click="toggle-replies"
-                    phx-value-id={comment.id}
-                    class="flex items-center gap-1 hover:text-gray-800 text-xs text-gray-500 font-semibold pl-4"
+              <% # Menu Trigger %>
+
+              <div class={"relative inline-block opacity-100 md:opacity-0 group-hover/comment:opacity-100 transition-opacity #{if @open_comment_menu == comment.id, do: "z-[100]", else: "z-0"}"}>
+                <button
+                  phx-click="toggle-comment-menu"
+                  phx-value-id={comment.id}
+                  class="text-gray-400 hover:text-gray-600"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="currentColor"
+                    viewBox="0 0 16 16"
+                    class="w-3 h-3"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke-width="2"
-                      stroke="currentColor"
-                      class="w-3 h-3"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        d={
-                          if MapSet.member?(@expanded_replies, comment.id),
-                            do: "M19.5 8.25l-7.5 7.5-7.5-7.5",
-                            else: "M8.25 4.5l7.5 7.5-7.5 7.5"
-                        }
-                      />
-                    </svg>
-                    <span>
-                      <%= if MapSet.member?(@expanded_replies, comment.id) do %>
-                        Hide replies
-                      <% else %>
-                        View {Enum.count(@comments, fn c -> c.parent_id == comment.id end)} {if Enum.count(
-                                                                                                  @comments,
-                                                                                                  fn c ->
-                                                                                                    c.parent_id ==
-                                                                                                      comment.id
-                                                                                                  end
-                                                                                                ) == 1,
-                                                                                                do:
-                                                                                                  "reply",
-                                                                                                else:
-                                                                                                  "replies"}
-                      <% end %>
-                    </span>
-                  </button>
-                <% end %>
-
-                <%= if MapSet.member?(@expanded_replies, comment.id) do %>
-                  <%= for reply <- Enum.filter(@comments, fn c -> c.parent_id == comment.id end) do %>
-                    <div class="flex gap-3 mt-3 pl-0">
-                      <div class="w-6 h-6 rounded-full overflow-hidden bg-gray-200 shrink-0 border border-gray-100">
-                        <img
-                          src={"https://ui-avatars.com/api/?name=#{reply.user.username}&background=random"}
-                          class="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div class="flex-1">
-                        <div class="text-sm">
-                          <.link navigate={"/#{reply.user.username}"} class="font-semibold mr-1">{reply.user.username}</.link>
-                          <span class="text-blue-500 mr-1">@{comment.user.username}</span>
-                          <span>{reply.body}</span>
-                        </div>
-                        <div class="flex items-center gap-4 mt-1 text-xs text-gray-500 font-semibold">
-                          <span>{InstaClone.Timeline.format_timestamp(reply.inserted_at)}</span>
-                          <button
-                            phx-click="reply-to"
-                            phx-value-id={comment.id}
-                            phx-value-username={comment.user.username}
-                            class="hover:text-gray-800"
-                          >
-                            Reply
-                          </button>
-                        </div>
-                      </div>
+                    <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z" />
+                  </svg>
+                </button>
+                <%= if @open_comment_menu == comment.id do %>
+                  <div class="absolute left-0 bottom-8 w-32 bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden z-[110]">
+                    <%= if comment.user_id == @current_scope.user.id do %>
                       <button
-                        phx-click={
-                          if InstaClone.Timeline.comment_liked?(@current_scope, reply),
-                            do: "unlike-comment",
-                            else: "like-comment"
-                        }
-                        phx-value-id={reply.id}
-                        class="self-start mt-2 flex items-center gap-1 group"
+                        phx-click="delete-comment"
+                        phx-value-id={comment.id}
+                        data-confirm="Delete comment?"
+                        class="w-full text-left px-3 py-2 text-xs text-red-500 hover:bg-red-50 font-semibold"
                       >
-                        <%= if InstaClone.Timeline.comment_liked?(@current_scope, reply) do %>
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                            class="w-4 h-4 text-red-500 transition-all duration-150 group-active:scale-125"
-                          >
-                            <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
-                          </svg>
-                        <% else %>
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="1.5"
-                            stroke="currentColor"
-                            class="w-4 h-4 text-gray-400 transition-all duration-150 group-active:scale-125"
-                          >
-                            <path
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                              d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
-                            />
-                          </svg>
-                        <% end %>
-                        <%= if InstaClone.Timeline.count_comment_likes(reply) > 0 do %>
-                          <span class="text-xs text-gray-600">
-                            {InstaClone.Timeline.count_comment_likes(reply)}
-                          </span>
-                        <% end %>
+                        Delete
                       </button>
-                    </div>
-                  <% end %>
+                    <% else %>
+                      <button class="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 font-semibold">
+                        Report
+                      </button>
+                    <% end %>
+                  </div>
                 <% end %>
               </div>
+            </div>
+
+            <% # Replied Section %>
+            <%= if Enum.count(@all_comments, fn c -> c.parent_id == comment.id end) > 0 do %>
               <button
-                phx-click={
-                  if InstaClone.Timeline.comment_liked?(@current_scope, comment),
-                    do: "unlike-comment",
-                    else: "like-comment"
-                }
+                phx-click="toggle-replies"
                 phx-value-id={comment.id}
-                class="self-start mt-2 flex items-center gap-1 group"
+                class="flex items-center gap-2 mt-2 text-xs text-gray-500 font-semibold hover:text-gray-800 transition-colors"
               >
-                <%= if InstaClone.Timeline.comment_liked?(@current_scope, comment) do %>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                    class="w-4 h-4 text-red-500 transition-all duration-150 group-active:scale-125"
-                  >
-                    <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
-                  </svg>
+                <div class="w-6 h-[1px] bg-gray-300"></div>
+                <%= if MapSet.member?(@expanded_replies, comment.id) do %>
+                  Hide replies
                 <% else %>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke-width="1.5"
-                    stroke="currentColor"
-                    class="w-4 h-4 text-gray-400 transition-all duration-150 group-active:scale-125"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
-                    />
-                  </svg>
-                <% end %>
-                <%= if InstaClone.Timeline.count_comment_likes(comment) > 0 do %>
-                  <span class="text-xs text-gray-600">
-                    {InstaClone.Timeline.count_comment_likes(comment)}
-                  </span>
+                  View all {Enum.count(@all_comments, fn c -> c.parent_id == comment.id end)} replies
                 <% end %>
               </button>
-            </div>
-          <% end %>
-        </div>
+            <% end %>
 
-        <%= if @reply_to_user do %>
-          <div class="flex items-center justify-between bg-gray-50 px-4 py-2 text-xs text-gray-500 mb-2 rounded-lg">
-            <span>Replying to <span class="font-bold text-black">@{@reply_to_user}</span></span>
-            <button phx-click="cancel-reply" class="text-gray-400 hover:text-red-500 font-bold">
-              ✕
-            </button>
+            <%= if MapSet.member?(@expanded_replies, comment.id) do %>
+              <div class="space-y-4 mt-4">
+                <%= for reply <- Enum.filter(@all_comments, fn c -> c.parent_id == comment.id end) do %>
+                  <div class="flex gap-3 group/reply" id={"comment-#{reply.id}"}>
+                    <.link
+                      navigate={"/#{reply.user.username}"}
+                      class="w-6 h-6 rounded-full overflow-hidden shrink-0 border border-gray-100"
+                    >
+                      <.user_avatar
+                        src={reply.user.avatar_path}
+                        username={reply.user.username}
+                        class="w-full h-full object-cover"
+                      />
+                    </.link>
+                    <div class="flex-1">
+                      <p class="text-sm">
+                        <.link
+                          navigate={"/#{reply.user.username}"}
+                          class="font-bold mr-1 hover:text-gray-600 transition-colors"
+                        >
+                          {reply.user.username}
+                        </.link>
+                        <span class="text-blue-500 mr-1 cursor-pointer">
+                          @{comment.user.username}
+                        </span>
+                        <span class="text-gray-900">{reply.body}</span>
+                      </p>
+                      <div class="flex items-center gap-3 mt-1 text-[10px] text-gray-500 font-semibold uppercase">
+                        <span>{InstaClone.Timeline.format_timestamp(reply.inserted_at)}</span>
+                        <%= if InstaClone.Timeline.count_comment_likes(reply) > 0 do %>
+                          <span>{InstaClone.Timeline.count_comment_likes(reply)} likes</span>
+                        <% end %>
+                        <button
+                          phx-click="reply-to"
+                          phx-value-id={comment.id}
+                          phx-value-username={comment.user.username}
+                          class="hover:text-gray-800 transition-colors"
+                        >
+                          Reply
+                        </button>
+
+                        <% # Reply Menu Trigger %>
+                        <div class={"relative inline-block opacity-100 md:opacity-0 group-hover/reply:opacity-100 transition-opacity #{if @open_comment_menu == reply.id, do: "z-[100]", else: "z-0"}"}>
+                          <button
+                            phx-click="toggle-comment-menu"
+                            phx-value-id={reply.id}
+                            class="text-gray-400 hover:text-gray-600"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="currentColor"
+                              viewBox="0 0 16 16"
+                              class="w-2.5 h-2.5"
+                            >
+                              <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z" />
+                            </svg>
+                          </button>
+                          <%= if @open_comment_menu == reply.id do %>
+                            <div class="absolute left-0 bottom-4 w-32 bg-white rounded-lg shadow-xl border border-gray-100 overflow-hidden z-[110]">
+                              <%= if reply.user_id == @current_scope.user.id do %>
+                                <button
+                                  phx-click="delete-comment"
+                                  phx-value-id={reply.id}
+                                  data-confirm="Delete reply?"
+                                  class="w-full text-left px-3 py-2 text-xs text-red-500 hover:bg-red-50 font-semibold"
+                                >
+                                  Delete
+                                </button>
+                              <% else %>
+                                <button class="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 font-semibold">
+                                  Report
+                                </button>
+                              <% end %>
+                            </div>
+                          <% end %>
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      phx-click={
+                        if InstaClone.Timeline.comment_liked?(@current_scope, reply),
+                          do: "unlike-comment",
+                          else: "like-comment"
+                      }
+                      phx-value-id={reply.id}
+                      class="shrink-0 mt-1"
+                    >
+                      <%= if InstaClone.Timeline.comment_liked?(@current_scope, reply) do %>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          class="w-3 h-3 text-red-500 active:scale-125 transition-transform"
+                        >
+                          <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+                        </svg>
+                      <% else %>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke-width="1.5"
+                          stroke="currentColor"
+                          class="w-3 h-3 text-gray-400 hover:text-gray-600"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                          />
+                        </svg>
+                      <% end %>
+                    </button>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
           </div>
-        <% end %>
 
-    <!-- Input Area -->
-        <div class="border-t border-gray-100 p-4 pb-8 shrink-0 bg-white">
-          <.form
-            :let={f}
-            for={@comment_changeset}
-            phx-submit="save-comment"
-            class="flex items-center gap-3"
+          <% # Like Button for Top Level Comment %>
+          <button
+            phx-click={
+              if InstaClone.Timeline.comment_liked?(@current_scope, comment),
+                do: "unlike-comment",
+                else: "like-comment"
+            }
+            phx-value-id={comment.id}
+            class="shrink-0 mt-2"
           >
-            <div class="w-8 h-8 rounded-full overflow-hidden bg-gray-200 shrink-0">
-              <img
-                src={"https://ui-avatars.com/api/?name=#{@current_user.username}"}
-                class="w-full h-full object-cover"
-              />
-            </div>
-            <div class="flex-1 relative">
-              <input
-                type="text"
-                name={f[:body].name}
-                id={f[:body].id}
-                value={f[:body].value}
-                placeholder="Add a comment..."
-                class="w-full bg-transparent border-none outline-none focus:ring-0 focus:outline-none text-sm placeholder-gray-400"
-                autocomplete="off"
-              />
-            </div>
-            <button
-              type="submit"
-              class="text-blue-500 font-semibold text-sm disabled:opacity-50 hover:text-blue-600"
-            >
-              Post
-            </button>
-          </.form>
+            <%= if InstaClone.Timeline.comment_liked?(@current_scope, comment) do %>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                class="w-3.5 h-3.5 text-red-500 active:scale-125 transition-transform"
+              >
+                <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+              </svg>
+            <% else %>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="w-3.5 h-3.5 text-gray-400 hover:text-gray-600"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                />
+              </svg>
+            <% end %>
+          </button>
         </div>
-      </div>
-    <% end %>
+      <% end %>
+    </div>
     """
   end
 end

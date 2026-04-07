@@ -23,6 +23,11 @@ defmodule InstaCloneWeb.Router do
     get "/", PageController, :home
   end
 
+  # Catch-all for missing static image files that Plug.Static passes through
+  scope "/images", InstaCloneWeb do
+    get "/*path", StaticFallbackController, :not_found
+  end
+
   if Application.compile_env(:insta_clone, :dev_routes) do
     import Phoenix.LiveDashboard.Router
 
@@ -42,11 +47,14 @@ defmodule InstaCloneWeb.Router do
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
       live "/timeline", TimelineLive.Index, :index
+      live "/explore", TimelineLive.Explore, :index
+      live "/messages", TimelineLive.Messages, :index
       live "/profile", TimelineLive.Profile, :index
       live "/profile/:username", TimelineLive.Profile, :index
     end
 
     post "/users/update-password", UserSessionController, :update_password
+    post "/uploads/audio", AudioController, :upload
   end
 
   scope "/", InstaCloneWeb do

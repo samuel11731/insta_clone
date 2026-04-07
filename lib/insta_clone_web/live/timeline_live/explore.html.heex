@@ -1,0 +1,117 @@
+<div class="max-w-[935px] mx-auto py-8 px-4 flex flex-col pt-12 md:pt-20 min-h-screen">
+  <div class="w-full max-w-2xl mx-auto mb-24 relative z-40">
+    <form phx-change="search" phx-submit="search" class="w-full relative" phx-debounce="300">
+      <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke-width="2"
+          stroke="currentColor"
+          class="w-5 h-5 text-gray-400"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+          />
+        </svg>
+      </div>
+      <input
+        type="text"
+        name="q"
+        value={@search_query}
+        placeholder="Search users..."
+        autocomplete="off"
+        class="w-full pl-12 pr-4 py-3 bg-gray-100 border-transparent focus:bg-white focus:border-gray-300 focus:ring-0 rounded-xl transition-colors duration-200"
+        phx-debounce="300"
+      />
+    </form>
+
+    <%= if @search_query != "" do %>
+      <div class="absolute top-full left-0 w-full mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 animate-slide-in">
+        <%= if Enum.empty?(@search_results) do %>
+          <div class="p-6 text-center text-gray-500 text-sm">
+            No results found for "{@search_query}"
+          </div>
+        <% else %>
+          <div class="max-h-96 overflow-y-auto">
+            <%= for user <- @search_results do %>
+              <.link
+                navigate={~p"/profile/#{user.username}"}
+                class="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors"
+              >
+                <div class="w-12 h-12 rounded-full overflow-hidden shrink-0 border border-gray-100">
+                  <img
+                    src={"https://ui-avatars.com/api/?name=#{user.username}&background=random"}
+                    class="w-full h-full object-cover"
+                  />
+                </div>
+                <div class="flex flex-col">
+                  <span class="font-semibold text-sm">{user.username}</span>
+                  <span class="text-gray-500 text-sm">{user.full_name}</span>
+                </div>
+              </.link>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="grid grid-cols-3 gap-1 md:gap-8 mt-4">
+    <%= for post <- @posts do %>
+      <div
+        class="aspect-square relative group cursor-pointer bg-gray-100 overflow-hidden"
+        phx-click="open-post"
+        phx-value-id={post.id}
+      >
+        <%= if String.ends_with?(post.image_path || "", [".mp4", ".mov"]) do %>
+          <video src={post.image_path} class="w-full h-full object-cover" muted loop playsinline>
+          </video>
+          <div class="absolute top-2 right-2 bg-black/50 rounded-full p-1">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              class="w-4 h-4 text-white"
+            >
+              <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z" />
+            </svg>
+          </div>
+        <% else %>
+          <img src={post.image_path} alt={post.caption} class="w-full h-full object-cover" />
+        <% end %>
+
+        <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-6 text-white font-bold">
+          <div class="flex items-center gap-2">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              class="w-6 h-6"
+            >
+              <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <%= if @active_post do %>
+    <InstaCloneWeb.TimelineLive.Components.comments_sheet
+      active_post={@active_post}
+      active_post_id={@active_post_id}
+      comments={@comments}
+      comment_changeset={@comment_changeset}
+      current_user={@current_scope.user}
+      current_scope={@current_scope}
+      reply_to_user={@reply_to_user}
+      reply_to_comment_id={@reply_to_comment_id}
+      expanded_replies={@expanded_replies}
+      open_comment_menu={@open_comment_menu}
+      on_close="close-comments"
+    />
+  <% end %>
+</div>

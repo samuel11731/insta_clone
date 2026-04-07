@@ -445,6 +445,34 @@ defmodule InstaCloneWeb.CoreComponents do
     """
   end
 
+  @doc """
+  Renders a user avatar with a fall-back to a generic silhouette.
+  """
+  attr :src, :any, default: nil
+  attr :class, :string, default: "w-8 h-8 rounded-full object-cover"
+  attr :username, :string, required: true
+
+  def user_avatar(assigns) do
+    ~H"""
+    <%= if @src do %>
+      <img src={@src} class={@class} alt={@username} />
+    <% else %>
+      <div class={["bg-gray-100 flex items-center justify-center overflow-hidden", @class]}>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="white"
+          viewBox="0 0 24 24"
+          stroke-width="1.5"
+          stroke="none"
+          class="w-full h-full scale-110 translate-y-1"
+        >
+          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+        </svg>
+      </div>
+    <% end %>
+    """
+  end
+
   ## JS Commands
 
   def show(js \\ %JS{}, selector) do

@@ -19,9 +19,24 @@ defmodule InstaClone.Accounts do
     Repo.get_by(User, username: username)
   end
 
-  # Added the bang (!) version because your mount function uses it
+  # Added the bang (!) version
+  def update_user_profile(user, attrs) do
+    user
+    |> User.profile_changeset(attrs)
+    |> Repo.update()
+  end
+
   def get_user_by_username!(username) do
     Repo.get_by!(User, username: username)
+  end
+
+  def search_users(query) do
+    like_query = "%#{query}%"
+
+    User
+    |> where([u], ilike(u.username, ^like_query) or ilike(u.full_name, ^like_query))
+    |> limit(10)
+    |> Repo.all()
   end
 
   def get_user_by_email_and_password(email, password)
@@ -47,9 +62,11 @@ defmodule InstaClone.Accounts do
   ## Settings & Sudo Mode
 
   def sudo_mode?(user, minutes \\ -20)
+
   def sudo_mode?(%User{authenticated_at: ts}, minutes) when is_struct(ts, DateTime) do
     DateTime.after?(ts, DateTime.utc_now() |> DateTime.add(minutes, :minute))
   end
+
   def sudo_mode?(_user, _minutes), do: false
 
   def change_user_email(user, attrs \\ %{}, opts \\ []) do
@@ -163,7 +180,9 @@ defmodule InstaClone.Accounts do
 
   # 1. Action: Follow a user
   # Accepts User structs OR IDs
-  def follow_user(%User{} = follower, %User{} = followed), do: follow_user(follower.id, followed.id)
+  def follow_user(%User{} = follower, %User{} = followed),
+    do: follow_user(follower.id, followed.id)
+
   def follow_user(follower_id, followed_id) do
     %Follower{}
     |> Follower.changeset(%{follower_id: follower_id, followed_id: followed_id})
@@ -171,7 +190,9 @@ defmodule InstaClone.Accounts do
   end
 
   # 2. Action: Unfollow a user
-  def unfollow_user(%User{} = follower, %User{} = followed), do: unfollow_user(follower.id, followed.id)
+  def unfollow_user(%User{} = follower, %User{} = followed),
+    do: unfollow_user(follower.id, followed.id)
+
   def unfollow_user(follower_id, followed_id) do
     from(f in Follower,
       where: f.follower_id == ^follower_id and f.followed_id == ^followed_id
@@ -181,46 +202,55 @@ defmodule InstaClone.Accounts do
 
   # 3. Check: Are we following them?
   def following?(%User{} = follower, %User{} = followed), do: following?(follower.id, followed.id)
+
   def following?(follower_id, followed_id) do
     Repo.exists?(
       from f in Follower,
-      where: f.follower_id == ^follower_id and f.followed_id == ^followed_id
+        where: f.follower_id == ^follower_id and f.followed_id == ^followed_id
     )
   end
 
   # 4. Stats: Count Followers
   # Handles Structs or IDs so your LiveView never crashes
   def count_followers(%User{id: id}), do: count_followers(id)
+
   def count_followers(user_id) do
     Repo.one(
       from f in Follower,
-      where: f.followed_id == ^user_id,
-      select: count(f.id)
+        where: f.followed_id == ^user_id,
+        select: count(f.id)
     )
   end
 
   # 5. Stats: Count Following
   def count_following(%User{id: id}), do: count_following(id)
+
   def count_following(user_id) do
     Repo.one(
       from f in Follower,
-      where: f.follower_id == ^user_id,
-      select: count(f.id)
+        where: f.follower_id == ^user_id,
+        select: count(f.id)
     )
   end
 
   # 6. List: Get the actual people (Optional, but good to have)
+  def get_followers(%User{id: id}), do: get_followers(id)
+
   def get_followers(user_id) do
     from(u in User,
-      join: f in Follower, on: f.follower_id == u.id,
+      join: f in Follower,
+      on: f.follower_id == u.id,
       where: f.followed_id == ^user_id
     )
     |> Repo.all()
   end
 
+  def get_following(%User{id: id}), do: get_following(id)
+
   def get_following(user_id) do
     from(u in User,
-      join: f in Follower, on: f.followed_id == u.id,
+      join: f in Follower,
+      on: f.followed_id == u.id,
       where: f.follower_id == ^user_id
     )
     |> Repo.all()

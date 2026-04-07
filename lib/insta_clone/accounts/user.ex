@@ -7,8 +7,14 @@ defmodule InstaClone.Accounts.User do
   @foreign_key_type :binary_id
   schema "users" do
     field :email, :string
-    field :username, :string    # Added
-    field :full_name, :string   # Added
+    # Added
+    field :username, :string
+    # Added
+    field :bio, :string
+    # Added
+    field :avatar_path, :string
+    # Added
+    field :full_name, :string
     field :password, :string, virtual: true, redact: true
     field :hashed_password, :string, redact: true
     field :confirmed_at, :utc_datetime
@@ -23,21 +29,31 @@ defmodule InstaClone.Accounts.User do
     timestamps(type: :utc_datetime)
   end
 
-
-
   def registration_changeset(user, attrs, opts \\ []) do
     user
     |> cast(attrs, [:email, :password, :username, :full_name])
     |> validate_email(opts)
     |> validate_password(opts)
-
     |> validate_required([:username])
     |> validate_length(:username, min: 3, max: 30)
-    |> validate_format(:username, ~r/^[a-z0-9_]+$/, message: "only letters, numbers, and underscores")
+    |> validate_format(:username, ~r/^[a-z0-9_]+$/,
+      message: "only letters, numbers, and underscores"
+    )
     |> unsafe_validate_unique(:username, InstaClone.Repo)
     |> unique_constraint(:username)
   end
 
+  def profile_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:username, :full_name, :bio, :avatar_path])
+    |> validate_required([:username, :full_name])
+    |> validate_length(:username, min: 3, max: 30)
+    |> validate_format(:username, ~r/^[a-z0-9_]+$/,
+      message: "only letters, numbers, and underscores"
+    )
+    |> unsafe_validate_unique(:username, InstaClone.Repo)
+    |> unique_constraint(:username)
+  end
 
   def email_changeset(user, attrs, opts \\ []) do
     user
@@ -49,7 +65,6 @@ defmodule InstaClone.Accounts.User do
     end
   end
 
-
   def password_changeset(user, attrs, opts \\ []) do
     user
     |> cast(attrs, [:password])
@@ -57,11 +72,12 @@ defmodule InstaClone.Accounts.User do
     |> validate_password(opts)
   end
 
-
   defp validate_email(changeset, opts) do
     changeset
     |> validate_required([:email])
-    |> validate_format(:email, ~r/^[^@,;\s]+@[^@,;\s]+$/, message: "must have the @ sign and no spaces")
+    |> validate_format(:email, ~r/^[^@,;\s]+@[^@,;\s]+$/,
+      message: "must have the @ sign and no spaces"
+    )
     |> validate_length(:email, max: 160)
     |> maybe_validate_unique_email(opts)
   end

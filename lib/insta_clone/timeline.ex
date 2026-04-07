@@ -38,14 +38,9 @@ defmodule InstaClone.Timeline do
   @doc """
   Creates a story.
   """
-  def create_story(user, attrs \\ %{}) do
-    # Set expires_at to 24 hours from now by default
-    expires_at = DateTime.add(DateTime.utc_now(), 24, :hour)
-    attrs = Map.put_new(attrs, "expires_at", expires_at)
-    attrs = Map.put(attrs, "user_id", user.id)
-
+  def create_story(%Scope{} = scope, attrs \\ %{}) do
     %Story{}
-    |> Story.changeset(attrs)
+    |> Story.changeset(attrs, scope)
     |> Repo.insert()
   end
 
@@ -64,23 +59,21 @@ defmodule InstaClone.Timeline do
   def list_posts(%Scope{} = _scope) do
     Post
     |> order_by(desc: :inserted_at)
-    |> preload([:user, :likes])
+    |> preload([:user, :likes, :comments])
     |> Repo.all()
   end
 
-def count_user_posts(user) do
+  def count_user_posts(user) do
     Ecto.assoc(user, :posts)
     |> Repo.aggregate(:count, :id)
   end
 
-def list_user_posts(%Scope{} = _scope, user_id) do
+  def list_user_posts(%Scope{} = _scope, user_id) do
     Post
     |> where([p], p.user_id == ^user_id)
     |> order_by(desc: :inserted_at)
     |> Repo.all()
   end
-
-
 
   def get_post!(%Scope{} = scope, id) do
     Repo.get_by!(Post, id: id, user_id: scope.user.id)
@@ -152,8 +145,14 @@ def list_user_posts(%Scope{} = _scope, user_id) do
     Repo.one(from l in Like, where: l.post_id == ^post.id, select: count(l.id))
   end
 
+  def count_comments(%Post{comments: comments}) when is_list(comments) do
+    Enum.count(comments)
+  end
+
   def count_comments(%Post{} = post) do
-    Repo.one(from c in Comment, where: c.post_id == ^post.id, select: count(c.id))
+    Comment
+    |> where([c], c.post_id == ^post.id)
+    |> Repo.aggregate(:count, :id)
   end
 
   def format_timestamp(nil), do: ""
@@ -169,8 +168,8 @@ def list_user_posts(%Scope{} = _scope, user_id) do
       diff_seconds < 60 -> "Just now"
       diff_seconds < 3600 -> "#{div(diff_seconds, 60)}m ago"
       diff_seconds < 86400 -> "#{div(diff_seconds, 3600)}h ago"
-      diff_seconds < 604800 -> "#{div(diff_seconds, 86400)}d ago"
-      true -> "#{div(diff_seconds, 604800)}w ago"
+      diff_seconds < 604_800 -> "#{div(diff_seconds, 86400)}d ago"
+      true -> "#{div(diff_seconds, 604_800)}w ago"
     end
   end
 
@@ -180,6 +179,34 @@ def list_user_posts(%Scope{} = _scope, user_id) do
     |> Repo.insert()
     |> broadcast_to_everyone(:post_updated)
   end
+
+  def delete_comment(%Scope{} = scope, %Comment{} = comment) do
+    if comment.user_id == scope.user.id do
+      Repo.delete(comment)
+      |> broadcast_to_everyone(:post_updated)
+    else
+      {:error, :unauthorized}
+    end
+  end
+
+  def delete_story(%Scope{} = scope, %Story{} = story) do
+    if story.user_id == scope.user.id do
+      # Clean up the file from disk
+      file_path =
+        Path.join([
+          :code.priv_dir(:insta_clone),
+          "uploads",
+          String.trim_leading(story.media_path, "/")
+        ])
+
+      File.rm(file_path)
+      Repo.delete(story)
+    else
+      {:error, :unauthorized}
+    end
+  end
+
+  def get_comment(id), do: Repo.get(Comment, id)
 
   def list_comments(%Post{} = post) do
     Comment
@@ -200,38 +227,60 @@ def list_user_posts(%Scope{} = _scope, user_id) do
 
   defp broadcast_to_everyone(error, _event), do: error
 
-# Comment Likes
-def like_comment(%Scope{} = scope, %Comment{} = comment) do
-  case %CommentLike{}
-       |> CommentLike.changeset(%{user_id: scope.user.id, comment_id: comment.id})
-       |> Repo.insert() do
-    {:ok, comment_like} ->
-      Phoenix.PubSub.broadcast(InstaClone.PubSub, "posts", {:post_updated, comment.post_id})
-      {:ok, comment_like}
-    error ->
-      error
-  end
-end
-def unlike_comment(%Scope{} = scope, %Comment{} = comment) do
-  comment_like = Repo.get_by(CommentLike, user_id: scope.user.id, comment_id: comment.id)
-  if comment_like do
-    case Repo.delete(comment_like) do
-      {:ok, _} ->
+  # Comment Likes
+  def like_comment(%Scope{} = scope, %Comment{} = comment) do
+    case %CommentLike{}
+         |> CommentLike.changeset(%{user_id: scope.user.id, comment_id: comment.id})
+         |> Repo.insert() do
+      {:ok, comment_like} ->
         Phoenix.PubSub.broadcast(InstaClone.PubSub, "posts", {:post_updated, comment.post_id})
         {:ok, comment_like}
+
       error ->
         error
     end
-  else
-    {:error, :not_found}
   end
-end
-def comment_liked?(%Scope{} = scope, %Comment{} = comment) do
-  Repo.exists?(from cl in CommentLike, where: cl.user_id == ^scope.user.id and cl.comment_id == ^comment.id)
-end
-def count_comment_likes(%Comment{} = comment) do
-  Repo.one(from cl in CommentLike, where: cl.comment_id == ^comment.id, select: count(cl.id))
-end
 
+  def unlike_comment(%Scope{} = scope, %Comment{} = comment) do
+    comment_like = Repo.get_by(CommentLike, user_id: scope.user.id, comment_id: comment.id)
 
+    if comment_like do
+      case Repo.delete(comment_like) do
+        {:ok, _} ->
+          Phoenix.PubSub.broadcast(InstaClone.PubSub, "posts", {:post_updated, comment.post_id})
+          {:ok, comment_like}
+
+        error ->
+          error
+      end
+    else
+      {:error, :not_found}
+    end
+  end
+
+  def comment_liked?(%Scope{} = scope, %Comment{} = comment) do
+    Repo.exists?(
+      from cl in CommentLike, where: cl.user_id == ^scope.user.id and cl.comment_id == ^comment.id
+    )
+  end
+
+  def count_comment_likes(%Comment{} = comment) do
+    Repo.one(from cl in CommentLike, where: cl.comment_id == ^comment.id, select: count(cl.id))
+  end
+
+  # Highlights
+  def list_user_highlights(user_id) do
+    from(h in InstaClone.Timeline.Highlight,
+      where: h.user_id == ^user_id,
+      preload: [:stories],
+      order_by: [desc: h.inserted_at]
+    )
+    |> Repo.all()
+  end
+
+  def get_highlight(id) do
+    InstaClone.Timeline.Highlight
+    |> Repo.get(id)
+    |> Repo.preload(:stories)
+  end
 end
