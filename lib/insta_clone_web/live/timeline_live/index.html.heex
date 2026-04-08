@@ -1,4 +1,4 @@
-<div class="sticky top-0 z-50 bg-white border-b border-gray-100 md:hidden">
+<div class="sticky top-0 z-50 bg-[#f8f8f8] border-b border-gray-100 md:hidden">
   <div class="flex justify-between items-center px-4 py-3 max-w-[470px] mx-auto">
     <button phx-click="open-modal" class="text-black hover:text-gray-600">
       <svg
@@ -16,8 +16,11 @@
         />
       </svg>
     </button>
-
-    <h1 class="text-xl font-bold font-serif tracking-tighter">Instagram</h1>
+    <div class="flex items-center gap-2">
+      <div class="bg-[#f8f8f8] rounded-lg px-12 py-1">
+        <img src="/logos/connect_logo.png" alt="ConnectKe" class="h-12 w-auto" />
+      </div>
+    </div>
 
     <button class="text-black hover:text-gray-600">
       <svg
@@ -38,7 +41,7 @@
   </div>
 </div>
 
-<div class="flex justify-center gap-16 max-w-[935px] mx-auto py-8 px-4">
+<div class="flex justify-center gap-16 max-w-[935px] mx-auto py-2 px-4">
   <!-- Left Feed Column -->
   <div class="w-full max-w-[470px] shrink-0">
     <div class="flex gap-6 overflow-x-auto py-2 mb-6 scrollbar-hide w-full">
@@ -73,7 +76,7 @@
               />
             </div>
           </div>
-          <div class="absolute bottom-5 right-0 bg-blue-500 rounded-full w-5 h-5 flex items-center justify-center border-2 border-white">
+          <div class="absolute bottom-5 right-0 bg-orange-500 rounded-full w-5 h-5 flex items-center justify-center border-2 border-white">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 20 20"
@@ -122,10 +125,10 @@
       />
     <% end %>
 
-    <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-2 mb-24">
       <div
         :for={post <- @posts}
-        class="bg-white border-b border-gray-200 md:border md:rounded-lg pb-4 relative overflow-hidden"
+        class="rounded-lg bg-white border-b border-gray-200 md:border md:rounded-lg pb-2 relative overflow-hidden shadow-lg"
       >
         <div class="w-full relative">
           <%= if String.ends_with?(post.image_path || "", [".mp4", ".mov"]) do %>
@@ -147,7 +150,7 @@
           <% else %>
             <img
               src={post.image_path}
-              class="w-full h-auto max-h-[700px] object-contain"
+              class="w-auto h-auto max-h-[700px] object-contain"
               onerror="this.onerror=null;this.src='https://placehold.co/600x400/1a1a1a/555?text=Image+not+found';"
             />
           <% end %>
@@ -364,7 +367,7 @@
         {"photography_daily", "Followed by art_lover + 2 more"},
         {"tech_insider", "Suggested for you"},
         {"travel_ explorer", "Followed by globetrotter"},
-        {"chef_special", "New to Instagram"},
+        {"chef_special", "New to ConnectKe"},
         {"fitness_freak", "Suggested for you"}
       ] do %>
         <div class="flex items-center justify-between">

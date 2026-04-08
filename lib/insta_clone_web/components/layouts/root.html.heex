@@ -29,35 +29,28 @@
       })();
     </script>
   </head>
-    <body class="antialiased bg-white">
+  <body class="antialiased bg-white">
     <%= if @current_scope do %>
       <div class="min-h-screen relative bg-white text-black">
-        <nav class={"group hidden md:flex flex-col fixed left-0 top-0 h-full border-r z-50 w-[72px] hover:w-[244px] py-2 px-3 transition-all duration-300 ease-in-out bg-white border-gray-100"}>
-
-
-          <div class="mb-6 mt-2 px-2 h-10 flex items-center justify-center lg:justify-start overflow-hidden transition-all duration-300">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-              class="w-7 h-7 shrink-0"
-            >
-              <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-              <circle cx="12" cy="12" r="4" />
-              <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
-            </svg>
-            <span class="ml-4 text-xl font-bold font-serif opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap">
-              Instagram
-            </span>
+        <nav class="group hidden md:flex flex-col fixed left-0 top-0 h-full border-r z-50 w-[72px] hover:w-[244px] py-2 px-3 transition-all duration-300 ease-in-out bg-white border-gray-100">
+          <div class="mb-6 mt-2 px-2 h-14 flex items-center overflow-hidden transition-all duration-300 bg-[#f8f8f8] rounded-lg">
+            <img
+              src="/logos/connect_logo.png"
+              alt="ConnectKe"
+              class="h-12 w-12 shrink-0 object-contain group-hover:hidden"
+            />
+            <img
+              src="/logos/connect_logo.png"
+              alt="ConnectKe"
+              class="h-12 w-auto shrink-0 hidden group-hover:block transition-all duration-300"
+            />
           </div>
 
           <div class="flex flex-col gap-1 flex-1">
             <div class="relative overflow-hidden">
               <.link
                 navigate="/timeline"
-                class="flex items-center p-3 rounded-xl hover:bg-gray-100 transition-all duration-200 group/item active:scale-95"
+                class="flex items-center p-3 rounded-xl hover:bg-orange-200 transition-all duration-200 group/item active:scale-95"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -76,7 +69,7 @@
             <div class="relative overflow-hidden">
               <.link
                 navigate="/explore"
-                class="flex items-center p-3 rounded-xl hover:bg-gray-100 transition-all duration-200 group/item active:scale-95 w-full"
+                class="flex items-center p-3 rounded-xl hover:bg-orange-200 transition-all duration-200 group/item active:scale-95 w-full"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -99,7 +92,7 @@
             </div>
 
             <div class="relative overflow-hidden">
-              <button class="flex items-center p-3 rounded-xl hover:bg-gray-100 transition-all duration-200 group/item active:scale-95 w-full">
+              <button class="flex items-center p-3 rounded-xl hover:bg-orange-200 transition-all duration-200 group/item active:scale-95 w-full">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -123,7 +116,7 @@
             <div class="relative overflow-hidden">
               <.link
                 navigate="/messages"
-                class="flex items-center p-3 rounded-xl hover:bg-gray-100 transition-all duration-200 group/item active:scale-95 w-full"
+                class="flex items-center p-3 rounded-xl hover:bg-orange-200 transition-all duration-200 group/item active:scale-95 w-full"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -146,7 +139,7 @@
             </div>
 
             <div class="relative overflow-hidden">
-              <button class="flex items-center p-3 rounded-xl hover:bg-gray-100 transition-all duration-200 group/item active:scale-95 w-full">
+              <button class="flex items-center p-3 rounded-xl hover:bg-orange-200 transition-all duration-200 group/item active:scale-95 w-full">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -168,7 +161,7 @@
             </div>
 
             <div class="relative overflow-hidden">
-              <button class="flex items-center p-3 rounded-xl hover:bg-gray-100 transition-all duration-200 group/item active:scale-95 w-full">
+              <button class="flex items-center p-3 rounded-xl hover:bg-orange-200 transition-all duration-200 group/item active:scale-95 w-full">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -192,7 +185,7 @@
             <div class="relative overflow-hidden">
               <.link
                 navigate={~p"/profile/#{@current_scope.user.username}"}
-                class="flex items-center p-3 rounded-xl hover:bg-gray-100 transition-all duration-200 group/item active:scale-95"
+                class="flex items-center p-3 rounded-xl hover:bg-orange-200 transition-all duration-200 group/item active:scale-95"
               >
                 <div class="w-6 h-6 rounded-full overflow-hidden border border-gray-300 shrink-0 group-hover/item:scale-110 transition-transform">
                   <.user_avatar
@@ -213,7 +206,7 @@
               <.link
                 href={~p"/users/log-out"}
                 method="delete"
-                class="flex items-center p-3 rounded-xl hover:bg-gray-100 transition-all duration-200 group/item active:scale-95 text-gray-500"
+                class="flex items-center p-3 rounded-xl hover:bg-red-800 transition-all duration-200 group/item active:scale-95 text-gray-500 hover:text-white"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -244,7 +237,10 @@
 
       <div class={"fixed bottom-0 left-0 w-full border-t z-50 pb-safe md:hidden transition-colors duration-300 #{if assigns[:dark_mode], do: "bg-black border-gray-900", else: "bg-white border-gray-200"}"}>
         <div class="flex justify-between items-center px-6 py-3 mx-auto">
-          <.link navigate="/timeline" class={if assigns[:dark_mode], do: "text-white", else: "text-black"}>
+          <.link
+            navigate="/timeline"
+            class={if assigns[:dark_mode], do: "text-white", else: "text-black"}
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -319,17 +315,6 @@
         </div>
       </div>
     <% else %>
-      <div class="sticky top-0 z-50 bg-white border-b border-gray-100 p-4 flex justify-between items-center max-w-[470px] mx-auto">
-        <h1 class="text-xl font-bold font-serif">Instagram</h1>
-        <div class="flex gap-4">
-          <.link href={~p"/users/log-in"} class="text-sm font-semibold text-gray-900">
-            Log in
-          </.link>
-          <.link href={~p"/users/register"} class="text-sm font-semibold text-blue-600">
-            Sign up
-          </.link>
-        </div>
-      </div>
       {@inner_content}
     <% end %>
   </body>

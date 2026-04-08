@@ -30,6 +30,8 @@ defmodule InstaClone.Accounts.User do
   end
 
   def registration_changeset(user, attrs, opts \\ []) do
+    attrs = maybe_put_username(attrs)
+
     user
     |> cast(attrs, [:email, :password, :username, :full_name])
     |> validate_email(opts)
@@ -41,6 +43,32 @@ defmodule InstaClone.Accounts.User do
     )
     |> unsafe_validate_unique(:username, InstaClone.Repo)
     |> unique_constraint(:username)
+  end
+
+  defp maybe_put_username(attrs) do
+    # Only generate if missing or empty
+    if Map.get(attrs, "username") || Map.get(attrs, :username) do
+      attrs
+    else
+      base =
+        (Map.get(attrs, "full_name") || Map.get(attrs, :full_name) || Map.get(attrs, "email") ||
+           Map.get(attrs, :email) || "user")
+        |> String.split("@")
+        |> List.first()
+        |> String.downcase()
+        |> String.replace(~r/[^a-z0-9_]/, "")
+
+      random_suffix = :crypto.strong_rand_bytes(2) |> Base.encode16(case: :lower)
+
+      username =
+        if String.length(base) < 3,
+          do: "user_#{random_suffix}",
+          else: "#{String.slice(base, 0..15)}_#{random_suffix}"
+
+      if is_map_key(attrs, "email"),
+        do: Map.put(attrs, "username", username),
+        else: Map.put(attrs, :username, username)
+    end
   end
 
   def profile_changeset(user, attrs) do

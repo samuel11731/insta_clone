@@ -2,7 +2,7 @@
   <div class="max-w-[935px] mx-auto md:pt-8 px-4">
     <!-- Profile Header -->
     <div class="px-4 md:px-12 pt-4 mb-8">
-      <div class="flex items-center md:items-start gap-8 md:gap-10">
+      <div class="flex items-start gap-8 md:gap-10">
         <!-- Avatar Section -->
         <div class="flex-shrink-0 relative">
           <div class="relative group">
@@ -19,7 +19,7 @@
             <%= if @is_own_profile do %>
               <div
                 phx-click="open-edit-modal"
-                class="absolute bottom-1 right-1 md:bottom-2 md:right-2 w-5 h-5 md:w-8 md:h-8 bg-[#0095F6] border-2 border-white rounded-full flex items-center justify-center cursor-pointer hover:bg-[#1877F2] transition"
+                class="absolute bottom-1 right-1 md:bottom-2 md:right-2 w-5 h-5 md:w-8 md:h-8 bg-orange-500 border-2 border-white rounded-full flex items-center justify-center cursor-pointer hover:bg-orange-400 transition"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -75,8 +75,8 @@
               </div>
             </div>
             <div class="mb-3 text-sm font-semibold tracking-tight">{@user.full_name}</div>
-            <div class="text-[13px] text-black font-medium leading-snug whitespace-pre-wrap">
-              {if @user.bio, do: @user.bio, else: "永不放弃\nNonchalant 6'7 who drives a hellcat"}
+            <div class="line-clamp-3 w-full max-w-sm break-words text-[13px] text-black font-medium leading-snug tracking-tight border-b border-gray-200 pb-2 italic">
+              {if @user.bio, do: @user.bio, else: "Add a bio let people know a bit about you"}
             </div>
           </div>
           
@@ -98,7 +98,7 @@
 <!-- Mobile Bio Section -->
       <div class="md:hidden mt-4 px-1">
         <div class="mb-0.5 text-sm font-semibold tracking-tight">{@user.full_name}</div>
-        <div class="text-[14px] text-black font-medium leading-tight whitespace-pre-wrap tracking-tight">
+        <div class="line-clamp-3 w-full max-w-sm break-words text-[14px] text-black font-medium leading-tight tracking-tight border-b border-gray-200 pb-2 italic">
           {if @user.bio, do: @user.bio, else: "永不放弃\nNonchalant 6'7 who drives a hellcat"}
         </div>
       </div>
@@ -109,32 +109,32 @@
       <%= if @is_own_profile do %>
         <button
           phx-click="open-edit-modal"
-          class="flex-1 py-1.5 bg-[#efefef] hover:bg-[#dbdbdb] text-black font-bold text-sm rounded-lg transition"
+          class="flex-1 py-1.5 bg-orange-200 hover:bg-orange-300 text-black font-bold text-sm rounded-lg transition"
         >
           Edit profile
         </button>
-        <button class="flex-1 py-1.5 bg-[#efefef] hover:bg-[#dbdbdb] text-black font-bold text-sm rounded-lg transition">
+        <button class="flex-1 py-1.5 bg-orange-200 hover:bg-orange-300 text-black font-bold text-sm rounded-lg transition">
           View archive
         </button>
       <% else %>
         <%= if @is_following do %>
           <button
             phx-click="unfollow"
-            class="flex-1 py-1.5 bg-[#efefef] hover:bg-[#dbdbdb] text-black font-bold text-sm rounded-lg transition"
+            class="flex-1 py-1.5 bg-orange-200 hover:bg-orange-300 text-black font-bold text-sm rounded-lg transition cursor-pointer"
           >
             Following
           </button>
         <% else %>
           <button
             phx-click="follow"
-            class="flex-1 py-1.5 bg-[#0095F6] hover:bg-[#1877F2] text-white font-bold text-sm rounded-lg transition"
+            class="flex-1 py-1.5 bg-orange-500 hover:bg-orange-300 text-black font-bold text-sm rounded-lg transition cursor-pointer"
           >
             Follow
           </button>
         <% end %>
         <button
           phx-click="message-user"
-          class="flex-1 py-1.5 bg-[#efefef] hover:bg-[#dbdbdb] text-black font-bold text-sm rounded-lg transition"
+          class="flex-1 py-1.5 bg-orange-200 hover:bg-orange-300 text-black font-bold text-sm rounded-lg transition cursor-pointer"
         >
           Message
         </button>
@@ -277,12 +277,12 @@
             <button
               type="button"
               phx-click="close-edit-modal"
-              class="text-black hover:text-gray-500 transition"
+              class="bg-orange-500 px-2 py-1 rounded-md text-white hover:bg-orange-400 transition font-bold text-sm"
             >
               Cancel
             </button>
             <h3>Edit profile</h3>
-            <button type="submit" class="text-[#0095F6] hover:text-[#1877F2] transition font-bold">
+            <button type="submit" class=" bg-orange-500 px-2 py-1 rounded-md text-white hover:bg-orange-400 transition font-bold text-sm">
               Done
             </button>
           </div>
@@ -301,7 +301,7 @@
                   />
                 <% end %>
               </div>
-              <label class="text-[#0095F6] text-sm font-bold cursor-pointer hover:text-black transition">
+              <label class="text-orange-400 text-sm font-bold cursor-pointer hover:text-orange-500 transition">
                 Change profile photo <.live_file_input upload={@uploads.avatar} class="hidden" />
               </label>
             </div>
@@ -312,7 +312,7 @@
                 </label>
                 <.input
                   field={@profile_form[:username]}
-                  class="w-full bg-[#fafafa] border-gray-200 rounded-lg focus:ring-1 focus:ring-gray-300 transition"
+                  class="w-full bg-[#fafafa] border-gray-200 focus:outline-none focus:ring-1 focus:ring-[#FD4F00] focus:border-[#FD4F00] rounded-lg transition p-2"
                 />
               </div>
               <div>
@@ -321,7 +321,7 @@
                 </label>
                 <.input
                   field={@profile_form[:full_name]}
-                  class="w-full bg-[#fafafa] border-gray-200 rounded-lg focus:ring-1 focus:ring-gray-300 transition"
+                  class="w-full bg-[#fafafa] border-gray-200 focus:outline-none focus:ring-1 focus:ring-[#FD4F00] focus:border-[#FD4F00] rounded-lg transition p-2"
                 />
               </div>
               <div>
@@ -331,7 +331,7 @@
                 <.input
                   type="textarea"
                   field={@profile_form[:bio]}
-                  class="w-full bg-[#fafafa] border-gray-200 rounded-lg focus:ring-1 focus:ring-gray-300 transition min-h-[100px]"
+                  class="w-full bg-[#fafafa] border-gray-200 focus:outline-none focus:ring-1 focus:ring-[#FD4F00] focus:border-[#FD4F00] rounded-lg p-2 transition min-h-[100px]"
                 />
               </div>
             </div>

@@ -6,15 +6,18 @@ defmodule InstaCloneWeb.UserLive.Registration do
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen flex flex-col justify-center items-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div class="max-w-sm w-full space-y-4">
-        <div class="bg-white p-10 border border-gray-300 rounded-sm">
+    <div class="min-h-screen flex flex-col justify-center items-center bg-gray-50 py-12 px-2 sm:px-6 lg:px-8">
+      <div class="max-w-md w-full space-y-4 opacity-0 animate-fade-in-up">
+        <div class="bg-white p-6 sm:p-10 shadow-sm rounded-lg">
           <div class="flex justify-center mb-6">
-            <img class="h-12 w-auto" src="/images/logo.svg" alt="InstaClone" />
+            <div class="bg-[#f8f8f8] rounded-lg px-8">
+              <img class="h-12 w-auto" src="/logos/connect_logo.png" alt="ConnectKe" />
+            </div>
           </div>
 
-          <h2 class="text-center text-gray-500 font-bold text-lg mb-6 leading-tight">
+          <h2 class="text-center text-slate-500 font-bold text-sm mb-6 leading-tight">
             Sign up to see photos and videos from your friends.
+            <span class="text-2xl text-orange-300">Let's connect.</span>
           </h2>
 
           <.form
@@ -29,29 +32,21 @@ defmodule InstaCloneWeb.UserLive.Registration do
               type="email"
               placeholder="Email"
               required
-              class="bg-gray-50 border-gray-300 text-sm focus:ring-0 focus:border-gray-400"
+              class="bg-gray-50 border-gray-300 text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#FD4F00] focus:border-[#FD4F00] p-2 w-full rounded-md"
             />
             <.input
               field={@form[:full_name]}
               type="text"
               placeholder="Full Name"
               required
-              class="bg-gray-50 border-gray-300 text-sm focus:ring-0 focus:border-gray-400"
-            />
-            <.input
-              field={@form[:username]}
-              type="text"
-              placeholder="Username"
-              required
-              phx-debounce="blur"
-              class="bg-gray-50 border-gray-300 text-sm focus:ring-0 focus:border-gray-400"
+              class="bg-gray-50 border-gray-300 text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#FD4F00] focus:border-[#FD4F00] p-2 w-full rounded-md"
             />
             <.input
               field={@form[:password]}
               type="password"
               placeholder="Password"
               required
-              class="bg-gray-50 border-gray-300 text-sm focus:ring-0 focus:border-gray-400"
+              class="bg-gray-50 border-gray-300 text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#FD4F00] focus:border-[#FD4F00] p-2 w-full rounded-md"
             />
 
             <p class="text-center text-xs text-gray-500 py-4">
@@ -60,20 +55,23 @@ defmodule InstaCloneWeb.UserLive.Registration do
 
             <.button
               phx-disable-with="Creating account..."
-              class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-1.5 rounded-md text-sm transition duration-200"
+              class="w-full bg-orange-400 hover:bg-orange-300 text-white font-bold py-1.5 rounded-md text-sm transition duration-200"
             >
               Sign up
             </.button>
           </.form>
-        </div>
 
-        <div class="bg-white p-6 border border-gray-300 rounded-sm text-center">
-          <p class="text-sm text-gray-600">
-            Have an account?
-            <.link navigate={~p"/users/log-in"} class="font-bold text-sky-500 hover:text-sky-600">
-              Log in
-            </.link>
-          </p>
+          <div class="bg-white p-6 rounded-sm text-center">
+            <p class="text-sm text-gray-600">
+              Have an account?
+              <.link
+                navigate={~p"/users/log-in"}
+                class="font-bold text-orange-400 hover:text-orange-300"
+              >
+                Log in
+              </.link>
+            </p>
+          </div>
         </div>
       </div>
     </div>

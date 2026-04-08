@@ -23,6 +23,12 @@ defmodule InstaCloneWeb.Router do
     get "/", PageController, :home
   end
 
+  scope "/", InstaCloneWeb do
+    pipe_through [:browser]
+
+    get "/welcome", PageController, :home
+  end
+
   # Catch-all for missing static image files that Plug.Static passes through
   scope "/images", InstaCloneWeb do
     get "/*path", StaticFallbackController, :not_found

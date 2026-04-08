@@ -34,6 +34,11 @@ defmodule InstaCloneWeb.Endpoint do
     from: Path.join([:code.priv_dir(:insta_clone), "static", "images"]),
     gzip: false
 
+  plug Plug.Static,
+    at: "/logos",
+    from: Path.join([:code.priv_dir(:insta_clone), "static", "logos"]),
+    gzip: false
+
   # Story uploads go here — outside priv/static/ so dev live-reload doesn't loop
   plug Plug.Static,
     at: "/uploads",
