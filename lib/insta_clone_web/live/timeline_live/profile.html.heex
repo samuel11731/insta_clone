@@ -1,3 +1,4 @@
+<.mobile_header unread_notifications_count={@unread_notifications_count} />
 <div class="min-h-screen bg-white text-black pb-20 md:pb-0">
   <div class="max-w-[935px] mx-auto md:pt-8 px-4">
     <!-- Profile Header -->
@@ -282,7 +283,10 @@
               Cancel
             </button>
             <h3>Edit profile</h3>
-            <button type="submit" class=" bg-orange-500 px-2 py-1 rounded-md text-white hover:bg-orange-400 transition font-bold text-sm">
+            <button
+              type="submit"
+              class=" bg-orange-500 px-2 py-1 rounded-md text-white hover:bg-orange-400 transition font-bold text-sm"
+            >
               Done
             </button>
           </div>
@@ -357,8 +361,3 @@
     />
   <% end %>
 </div>
-
-<style>
-  .scrollbar-hide::-webkit-scrollbar { display: none; }
-  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-</style>

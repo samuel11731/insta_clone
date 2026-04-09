@@ -1,0 +1,72 @@
+<.mobile_header unread_notifications_count={@unread_notifications_count} />
+<div class="max-w-[600px] mx-auto py-8 px-4">
+  <h1 class="text-2xl font-bold mb-8">Notifications</h1>
+
+  <div class="space-y-4">
+    <%= if Enum.empty?(@notifications) do %>
+      <div class="flex flex-col items-center justify-center py-20 text-gray-500">
+        <div class="w-16 h-16 rounded-full border-2 border-gray-200 flex items-center justify-center mb-4">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="w-8 h-8"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
+            />
+          </svg>
+        </div>
+        <p class="text-lg font-medium">No notifications yet</p>
+        <p class="text-sm">Activities like likes and comments will appear here.</p>
+      </div>
+    <% else %>
+      <div :for={notification <- @notifications} class="flex items-center justify-between group">
+        <div class="flex items-center gap-3">
+          <.link navigate={"/#{notification.actor.username}"} class="shrink-0">
+            <.user_avatar
+              src={notification.actor.avatar_path}
+              username={notification.actor.username}
+              class="w-11 h-11 rounded-full object-cover"
+            />
+          </.link>
+          <div class="text-sm">
+            <p class="text-gray-900">
+              <.link
+                navigate={"/#{notification.actor.username}"}
+                class="font-bold hover:underline"
+              >
+                {notification.actor.username}
+              </.link>
+              <%= case notification.type do %>
+                <% "like" -> %>
+                  liked your post.
+                <% "comment" -> %>
+                  commented on your post.
+                <% "follow" -> %>
+                  started following you.
+                <% _ -> %>
+                  interacted with you.
+              <% end %>
+              <span class="text-gray-500 ml-1">
+                {InstaClone.Timeline.format_timestamp(notification.inserted_at)}
+              </span>
+            </p>
+          </div>
+        </div>
+
+        <%= if notification.post_id do %>
+          <.link navigate="/timeline" class="shrink-0">
+            <div class="w-11 h-11 bg-gray-100 rounded overflow-hidden">
+              <img src={notification.post.image_path} class="w-full h-full object-cover" />
+            </div>
+          </.link>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

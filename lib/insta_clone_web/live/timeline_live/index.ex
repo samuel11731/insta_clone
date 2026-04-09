@@ -61,6 +61,7 @@ defmodule InstaCloneWeb.TimelineLive.Index do
       if socket.assigns.active_post_id == post_id do
         active_post = Timeline.get_post!(post_id) |> InstaClone.Repo.preload([:user, :likes])
         updated_comments = Timeline.list_comments(active_post)
+
         assign(socket, :comments, updated_comments)
         |> assign(:active_post, active_post)
       else
@@ -68,6 +69,11 @@ defmodule InstaCloneWeb.TimelineLive.Index do
       end
 
     {:noreply, assign(socket, :posts, posts)}
+  end
+
+  @impl true
+  def handle_info(:notifications_read, socket) do
+    {:noreply, assign(socket, :unread_notifications_count, 0)}
   end
 
   @impl true
@@ -161,11 +167,14 @@ defmodule InstaCloneWeb.TimelineLive.Index do
         case Timeline.delete_comment(scope, comment) do
           {:ok, _} ->
             # Reload post and update feed for instant count update
-            updated_post = Timeline.get_post!(socket.assigns.active_post_id) |> InstaClone.Repo.preload([:user, :likes, :comments])
+            updated_post =
+              Timeline.get_post!(socket.assigns.active_post_id)
+              |> InstaClone.Repo.preload([:user, :likes, :comments])
 
-            updated_posts = Enum.map(socket.assigns.posts, fn p ->
-              if p.id == updated_post.id, do: updated_post, else: p
-            end)
+            updated_posts =
+              Enum.map(socket.assigns.posts, fn p ->
+                if p.id == updated_post.id, do: updated_post, else: p
+              end)
 
             # Final sync with DB for the comments list itself
             comments = Timeline.list_comments(updated_post)
@@ -179,7 +188,9 @@ defmodule InstaCloneWeb.TimelineLive.Index do
 
           {:error, _} ->
             # Rollback on error (optional, but good practice)
-            original_comments = Timeline.list_comments(Timeline.get_post!(socket.assigns.active_post_id))
+            original_comments =
+              Timeline.list_comments(Timeline.get_post!(socket.assigns.active_post_id))
+
             {:noreply,
              socket
              |> assign(:comments, original_comments)

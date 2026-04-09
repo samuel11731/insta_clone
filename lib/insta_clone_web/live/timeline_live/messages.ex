@@ -195,4 +195,9 @@ defmodule InstaCloneWeb.TimelineLive.Messages do
     conversations = Chat.list_user_conversations(socket.assigns.current_scope.user.id)
     {:noreply, assign(socket, conversations: conversations)}
   end
+
+  @impl true
+  def handle_info(:notifications_read, socket) do
+    {:noreply, assign(socket, :unread_notifications_count, 0)}
+  end
 end

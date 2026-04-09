@@ -526,4 +526,49 @@ defmodule InstaCloneWeb.CoreComponents do
   def translate_errors(errors, field) when is_list(errors) do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
   end
+
+  attr :unread_notifications_count, :integer, default: 0
+  slot :left_button
+
+  def mobile_header(assigns) do
+    ~H"""
+    <div class="sticky top-0 z-50 bg-[#f8f8f8] border-b border-gray-100 md:hidden">
+      <div class="flex justify-between items-center px-4 py-3 max-w-[470px] mx-auto">
+        <div class="flex-1">
+          {render_slot(@left_button)}
+        </div>
+
+        <div class="flex items-center justify-center">
+          <div class="bg-[#f8f8f8] rounded-lg px-6 py-1">
+            <img src="/logos/connect_logo.png" alt="ConnectKe" class="h-10 w-auto" />
+          </div>
+        </div>
+
+        <div class="flex-1 flex justify-end">
+          <.link navigate="/notifications" class="text-black hover:text-gray-600 relative">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke-width="2"
+              stroke="currentColor"
+              class="w-7 h-7"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+              />
+            </svg>
+            <%= if @unread_notifications_count > 0 do %>
+              <span class="absolute -top-1.5 -right-1.5 flex items-center justify-center bg-red-500 text-white text-[10px] font-bold h-4 w-4 rounded-full ring-2 ring-[#f8f8f8]">
+                {@unread_notifications_count}
+              </span>
+            <% end %>
+          </.link>
+        </div>
+      </div>
+    </div>
+    """
+  end
 end

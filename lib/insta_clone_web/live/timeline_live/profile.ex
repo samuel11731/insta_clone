@@ -162,4 +162,9 @@ defmodule InstaCloneWeb.TimelineLive.Profile do
      |> assign(:active_post_id, nil)
      |> assign(:active_post, nil)}
   end
+
+  @impl true
+  def handle_info(:notifications_read, socket) do
+    {:noreply, assign(socket, :unread_notifications_count, 0)}
+  end
 end

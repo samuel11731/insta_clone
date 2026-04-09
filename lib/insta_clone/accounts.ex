@@ -187,6 +187,19 @@ defmodule InstaClone.Accounts do
     %Follower{}
     |> Follower.changeset(%{follower_id: follower_id, followed_id: followed_id})
     |> Repo.insert()
+    |> case do
+      {:ok, follower} ->
+        InstaClone.Timeline.create_notification(%{
+          actor_id: follower_id,
+          recipient_id: followed_id,
+          type: "follow"
+        })
+
+        {:ok, follower}
+
+      error ->
+        error
+    end
   end
 
   # 2. Action: Unfollow a user
@@ -194,10 +207,19 @@ defmodule InstaClone.Accounts do
     do: unfollow_user(follower.id, followed.id)
 
   def unfollow_user(follower_id, followed_id) do
-    from(f in Follower,
-      where: f.follower_id == ^follower_id and f.followed_id == ^followed_id
-    )
-    |> Repo.delete_all()
+    follow = Repo.get_by(Follower, follower_id: follower_id, followed_id: followed_id)
+
+    if follow do
+      InstaClone.Timeline.delete_notification(%{
+        actor_id: follower_id,
+        recipient_id: followed_id,
+        type: "follow"
+      })
+
+      Repo.delete(follow)
+    else
+      {:error, :not_found}
+    end
   end
 
   # 3. Check: Are we following them?

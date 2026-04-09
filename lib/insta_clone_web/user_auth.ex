@@ -246,14 +246,46 @@ defmodule InstaCloneWeb.UserAuth do
   end
 
   defp mount_current_scope(socket, session) do
-    Phoenix.Component.assign_new(socket, :current_scope, fn ->
-      {user, _} =
-        if user_token = session["user_token"] do
-          Accounts.get_user_by_session_token(user_token)
-        end || {nil, nil}
+    socket =
+      Phoenix.Component.assign_new(socket, :current_scope, fn ->
+        {user, _} =
+          if user_token = session["user_token"] do
+            Accounts.get_user_by_session_token(user_token)
+          end || {nil, nil}
 
-      Scope.for_user(user)
-    end)
+        Scope.for_user(user)
+      end)
+
+    if socket.assigns.current_scope && socket.assigns.current_scope.user do
+      user_id = socket.assigns.current_scope.user.id
+
+      if Phoenix.LiveView.connected?(socket) do
+        InstaClone.Timeline.subscribe_notifications(user_id)
+      end
+
+      socket =
+        Phoenix.Component.assign_new(socket, :unread_notifications_count, fn ->
+          InstaClone.Timeline.count_unread_notifications(user_id)
+        end)
+
+      Phoenix.LiveView.attach_hook(socket, :notifications_handler, :handle_info, fn
+        {:new_notification, _}, socket ->
+          count = InstaClone.Timeline.count_unread_notifications(user_id)
+          {:cont, Phoenix.Component.assign(socket, :unread_notifications_count, count)}
+
+        {:notification_deleted, _}, socket ->
+          count = InstaClone.Timeline.count_unread_notifications(user_id)
+          {:cont, Phoenix.Component.assign(socket, :unread_notifications_count, count)}
+
+        :notifications_read, socket ->
+          {:cont, Phoenix.Component.assign(socket, :unread_notifications_count, 0)}
+
+        _message, socket ->
+          {:cont, socket}
+      end)
+    else
+      socket
+    end
   end
 
   @doc "Returns the path to redirect to after log in."

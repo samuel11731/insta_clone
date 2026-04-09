@@ -55,6 +55,7 @@ defmodule InstaCloneWeb.Router do
       live "/timeline", TimelineLive.Index, :index
       live "/explore", TimelineLive.Explore, :index
       live "/messages", TimelineLive.Messages, :index
+      live "/notifications", TimelineLive.Notifications, :index
       live "/profile", TimelineLive.Profile, :index
       live "/profile/:username", TimelineLive.Profile, :index
     end

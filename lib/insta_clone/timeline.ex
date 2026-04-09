@@ -1,6 +1,6 @@
 defmodule InstaClone.Timeline do
   import Ecto.Query, warn: false
-  alias InstaClone.Timeline.{Post, Like, Comment, CommentLike, Story}
+  alias InstaClone.Timeline.{Post, Like, Comment, CommentLike, Story, Notification}
   alias InstaClone.Accounts.Scope
   alias InstaClone.Repo
 
@@ -123,13 +123,36 @@ defmodule InstaClone.Timeline do
     %Like{}
     |> Like.changeset(%{user_id: scope.user.id, post_id: post.id})
     |> Repo.insert()
-    |> broadcast_to_everyone(:post_updated)
+    |> case do
+      {:ok, like} ->
+        # Reload post to get owner_id
+        post = Repo.get(Post, post.id)
+
+        create_notification(%{
+          actor_id: scope.user.id,
+          recipient_id: post.user_id,
+          type: "like",
+          post_id: post.id
+        })
+
+        broadcast_to_everyone({:ok, like}, :post_updated)
+
+      error ->
+        error
+    end
   end
 
   def unlike_post(%Scope{} = scope, %Post{} = post) do
     like = Repo.get_by(Like, user_id: scope.user.id, post_id: post.id)
 
     if like do
+      delete_notification(%{
+        actor_id: scope.user.id,
+        recipient_id: post.user_id,
+        type: "like",
+        post_id: post.id
+      })
+
       Repo.delete(like)
       |> broadcast_to_everyone(:post_updated)
     else
@@ -177,11 +200,33 @@ defmodule InstaClone.Timeline do
     %Comment{}
     |> Comment.changeset(Map.merge(attrs, %{"user_id" => scope.user.id, "post_id" => post.id}))
     |> Repo.insert()
-    |> broadcast_to_everyone(:post_updated)
+    |> case do
+      {:ok, comment} ->
+        create_notification(%{
+          actor_id: scope.user.id,
+          recipient_id: post.user_id,
+          type: "comment",
+          post_id: post.id
+        })
+
+        broadcast_to_everyone({:ok, comment}, :post_updated)
+
+      error ->
+        error
+    end
   end
 
   def delete_comment(%Scope{} = scope, %Comment{} = comment) do
     if comment.user_id == scope.user.id do
+      post = Repo.get(Post, comment.post_id)
+
+      delete_notification(%{
+        actor_id: scope.user.id,
+        recipient_id: post.user_id,
+        type: "comment",
+        post_id: post.id
+      })
+
       Repo.delete(comment)
       |> broadcast_to_everyone(:post_updated)
     else
@@ -282,5 +327,109 @@ defmodule InstaClone.Timeline do
     InstaClone.Timeline.Highlight
     |> Repo.get(id)
     |> Repo.preload(:stories)
+  end
+
+  # --- Notifications ---
+
+  def subscribe_notifications(user_id) do
+    Phoenix.PubSub.subscribe(InstaClone.PubSub, "notifications:#{user_id}")
+  end
+
+  def list_notifications(user_id) do
+    Notification
+    |> where([n], n.recipient_id == ^user_id)
+    |> order_by(desc: :inserted_at)
+    |> preload([:actor, :post])
+    |> Repo.all()
+  end
+
+  def count_unread_notifications(user_id) do
+    Notification
+    |> where([n], n.recipient_id == ^user_id and n.is_read == false)
+    |> Repo.aggregate(:count, :id)
+  end
+
+  def mark_notifications_as_read(user_id) do
+    from(n in Notification, where: n.recipient_id == ^user_id and n.is_read == false)
+    |> Repo.update_all(set: [is_read: true, updated_at: DateTime.utc_now()])
+
+    Phoenix.PubSub.broadcast(InstaClone.PubSub, "notifications:#{user_id}", :notifications_read)
+  end
+
+  def create_notification(attrs) do
+    # Don't notify if the actor is the recipient
+    if attrs.actor_id != attrs.recipient_id do
+      # Check for duplicates (e.g. rapid follow/unfollow/follow)
+      query =
+        from(n in Notification,
+          where:
+            n.actor_id == ^attrs.actor_id and
+              n.recipient_id == ^attrs.recipient_id and
+              n.type == ^attrs.type and
+              n.is_read == false
+        )
+
+      query =
+        if Map.get(attrs, :post_id),
+          do: where(query, [n], n.post_id == ^attrs.post_id),
+          else: query
+
+      Repo.one(query)
+      |> case do
+        nil ->
+          %Notification{}
+          |> Notification.changeset(attrs)
+          |> Repo.insert()
+          |> case do
+            {:ok, notification} ->
+              notification = Repo.preload(notification, [:actor, :post])
+              broadcast_notification(notification)
+              {:ok, notification}
+
+            error ->
+              error
+          end
+
+        notification ->
+          {:ok, notification}
+      end
+    else
+      {:error, :self_notification}
+    end
+  end
+
+  def delete_notification(attrs) do
+    query =
+      from(n in Notification,
+        where:
+          n.actor_id == ^attrs.actor_id and
+            n.recipient_id == ^attrs.recipient_id and
+            n.type == ^attrs.type
+      )
+
+    query =
+      if Map.get(attrs, :post_id), do: where(query, [n], n.post_id == ^attrs.post_id), else: query
+
+    Repo.all(query)
+    |> Enum.each(fn notification ->
+      Repo.delete(notification)
+      broadcast_notification_deleted(notification)
+    end)
+  end
+
+  defp broadcast_notification(notification) do
+    Phoenix.PubSub.broadcast(
+      InstaClone.PubSub,
+      "notifications:#{notification.recipient_id}",
+      {:new_notification, notification}
+    )
+  end
+
+  defp broadcast_notification_deleted(notification) do
+    Phoenix.PubSub.broadcast(
+      InstaClone.PubSub,
+      "notifications:#{notification.recipient_id}",
+      {:notification_deleted, notification.id}
+    )
   end
 end

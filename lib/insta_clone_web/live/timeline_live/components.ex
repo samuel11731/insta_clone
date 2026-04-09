@@ -70,10 +70,10 @@ defmodule InstaCloneWeb.TimelineLive.Components do
                 muted
                 loop
                 playsinline
-                class="w-full h-full object-contain"
+                class="w-full h-full object-cover"
               />
             <% else %>
-              <img src={@active_post.image_path} class="w-full h-full object-contain" />
+              <img src={@active_post.image_path} class="w-full h-full object-cover" />
             <% end %>
           </div>
 
@@ -140,7 +140,7 @@ defmodule InstaCloneWeb.TimelineLive.Components do
                     </.link>
                     <span class="text-gray-900">{@active_post.caption}</span>
                   </p>
-                  <p class="text-gray-500 text-[10px] uppercase mt-2">
+                  <p class="text-gray-500 text-xm mt-2">
                     {InstaClone.Timeline.format_timestamp(@active_post.inserted_at)}
                   </p>
                 </div>
@@ -213,7 +213,7 @@ defmodule InstaCloneWeb.TimelineLive.Components do
                         <path
                           stroke-linecap="round"
                           stroke-linejoin="round"
-                          d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 01-.923 1.785 0.5.5 0 00.37.839 7.79 7.79 0 003.733-1.041 3.96 3.96 0 011.758-.454c.76 0 1.48.167 2.203.454z"
+                          d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"
                         />
                       </svg>
                     </button>
@@ -222,7 +222,7 @@ defmodule InstaCloneWeb.TimelineLive.Components do
                 <p class="font-bold text-sm mb-1">
                   {InstaClone.Timeline.count_likes(@active_post)} likes
                 </p>
-                <p class="text-gray-500 text-[10px] uppercase">
+                <p class="text-gray-500 text-xs">
                   {InstaClone.Timeline.format_timestamp(@active_post.inserted_at)}
                 </p>
               </div>
@@ -307,28 +307,32 @@ defmodule InstaCloneWeb.TimelineLive.Components do
             />
           </.link>
 
-          <div class="flex-1">
+          <div class="flex-1 min-w-0">
             <div class="text-sm">
-              <p>
+              <div class="flex items-center gap-2 mb-0.5">
                 <.link
                   navigate={"/#{comment.user.username}"}
-                  class="font-bold mr-2 hover:text-gray-600 transition-colors"
+                  class="font-bold hover:text-gray-600 transition-colors"
                 >
                   {comment.user.username}
                 </.link>
-                <span class="text-gray-900">{comment.body}</span>
-              </p>
+                <span class="text-gray-400 text-xs">
+                  {InstaClone.Timeline.format_timestamp(comment.inserted_at)}
+                </span>
+              </div>
+              <p class="text-gray-900 leading-normal break-words">{comment.body}</p>
             </div>
-            <div class="flex items-center gap-4 mt-1 text-[10px] text-gray-500 font-semibold uppercase">
-              <span>{InstaClone.Timeline.format_timestamp(comment.inserted_at)}</span>
+            <div class="flex items-center gap-4 mt-2 text-[11px] text-gray-400 font-semibold">
               <%= if InstaClone.Timeline.count_comment_likes(comment) > 0 do %>
-                <span>{InstaClone.Timeline.count_comment_likes(comment)} likes</span>
+                <span class="hover:underline cursor-pointer">
+                  {InstaClone.Timeline.count_comment_likes(comment)} likes
+                </span>
               <% end %>
               <button
                 phx-click="reply-to"
                 phx-value-id={comment.id}
                 phx-value-username={comment.user.username}
-                class="hover:text-gray-800 transition-colors"
+                class="hover:text-gray-600 transition-colors"
               >
                 Reply
               </button>
@@ -401,29 +405,37 @@ defmodule InstaCloneWeb.TimelineLive.Components do
                         class="w-full h-full object-cover"
                       />
                     </.link>
-                    <div class="flex-1">
-                      <p class="text-sm">
-                        <.link
-                          navigate={"/#{reply.user.username}"}
-                          class="font-bold mr-1 hover:text-gray-600 transition-colors"
-                        >
-                          {reply.user.username}
-                        </.link>
-                        <span class="text-blue-500 mr-1 cursor-pointer">
-                          @{comment.user.username}
-                        </span>
-                        <span class="text-gray-900">{reply.body}</span>
-                      </p>
-                      <div class="flex items-center gap-3 mt-1 text-[10px] text-gray-500 font-semibold uppercase">
-                        <span>{InstaClone.Timeline.format_timestamp(reply.inserted_at)}</span>
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm">
+                        <div class="flex items-center gap-2 mb-0.5">
+                          <.link
+                            navigate={"/#{reply.user.username}"}
+                            class="font-bold hover:text-gray-600 transition-colors"
+                          >
+                            {reply.user.username}
+                          </.link>
+                          <span class="text-gray-400 text-xs">
+                            {InstaClone.Timeline.format_timestamp(reply.inserted_at)}
+                          </span>
+                        </div>
+                        <p class="text-gray-900 leading-normal break-words">
+                          <span class="text-blue-500 mr-1 cursor-pointer">
+                            @{comment.user.username}
+                          </span>
+                          {reply.body}
+                        </p>
+                      </div>
+                      <div class="flex items-center gap-4 mt-2 text-[11px] text-gray-400 font-semibold">
                         <%= if InstaClone.Timeline.count_comment_likes(reply) > 0 do %>
-                          <span>{InstaClone.Timeline.count_comment_likes(reply)} likes</span>
+                          <span class="hover:underline cursor-pointer">
+                            {InstaClone.Timeline.count_comment_likes(reply)} likes
+                          </span>
                         <% end %>
                         <button
                           phx-click="reply-to"
                           phx-value-id={comment.id}
                           phx-value-username={comment.user.username}
-                          class="hover:text-gray-800 transition-colors"
+                          class="hover:text-gray-600 transition-colors"
                         >
                           Reply
                         </button>
