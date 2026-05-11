@@ -128,6 +128,38 @@ Hooks.AudioRecorder = {
   }
 };
 
+Hooks.TypingIndicator = {
+  mounted() {
+    this.timer = null;
+    const handleTyping = () => {
+      if (this.timer) {
+        clearTimeout(this.timer);
+      } else {
+        this.pushEvent("typing_start", {});
+      }
+
+      this.timer = setTimeout(() => {
+        this.pushEvent("typing_stop", {});
+        this.timer = null;
+      }, 2000);
+    };
+
+    // Use both input and keyup for maximum mobile compatibility
+    this.el.addEventListener("input", handleTyping);
+    this.el.addEventListener("keyup", (e) => {
+      // Ignore modifier keys
+      if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return;
+      handleTyping();
+    });
+  },
+  destroyed() {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.pushEvent("typing_stop", {});
+    }
+  }
+};
+
 // Auto-pause / auto-resume videos based on scroll visibility
 Hooks.VideoPlayer = {
   mounted() {
@@ -374,4 +406,13 @@ window.addEventListener("phx:scroll-to-comment", (e) => {
     const inputs = document.querySelectorAll("input[name='comment[body]']");
     inputs.forEach(input => input.value = "");
   }, 50);
+});
+
+window.addEventListener("phx:scroll_to_bottom", (e) => {
+  const el = document.getElementById(e.detail.id);
+  if (el) {
+    el.scrollTop = el.scrollHeight;
+    // Extra kick for mobile
+    setTimeout(() => { el.scrollTop = el.scrollHeight; }, 100);
+  }
 });

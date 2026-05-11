@@ -261,6 +261,10 @@ defmodule InstaCloneWeb.UserAuth do
 
       if Phoenix.LiveView.connected?(socket) do
         InstaClone.Timeline.subscribe_notifications(user_id)
+
+        InstaCloneWeb.Presence.track(self(), "global_presence", user_id, %{
+          online_at: inspect(DateTime.utc_now())
+        })
       end
 
       socket =

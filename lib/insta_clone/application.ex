@@ -12,6 +12,7 @@ defmodule InstaClone.Application do
       InstaClone.Repo,
       {DNSCluster, query: Application.get_env(:insta_clone, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: InstaClone.PubSub},
+      InstaCloneWeb.Presence,
       # Start a worker by calling: InstaClone.Worker.start_link(arg)
       # {InstaClone.Worker, arg},
       # Start to serve requests, typically the last entry

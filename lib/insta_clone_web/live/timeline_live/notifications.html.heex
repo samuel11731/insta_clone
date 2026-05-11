@@ -1,4 +1,4 @@
-<.mobile_header unread_notifications_count={@unread_notifications_count} />
+
 <div class="max-w-[600px] mx-auto py-8 px-4">
   <h1 class="text-2xl font-bold mb-8">Notifications</h1>
 
@@ -38,7 +38,7 @@
             <p class="text-gray-900">
               <.link
                 navigate={"/#{notification.actor.username}"}
-                class="font-bold hover:underline"
+                class="font-bold hover:text-orange-500"
               >
                 {notification.actor.username}
               </.link>
@@ -49,6 +49,8 @@
                   commented on your post.
                 <% "follow" -> %>
                   started following you.
+                <% "follow_back" -> %>
+                  followed you back.
                 <% _ -> %>
                   interacted with you.
               <% end %>
@@ -59,12 +61,31 @@
           </div>
         </div>
 
-        <%= if notification.post_id do %>
-          <.link navigate="/timeline" class="shrink-0">
-            <div class="w-11 h-11 bg-gray-100 rounded overflow-hidden">
-              <img src={notification.post.image_path} class="w-full h-full object-cover" />
-            </div>
-          </.link>
+        <%= if notification.type in ["follow", "follow_back"] do %>
+          <%= if MapSet.member?(@followed_ids, notification.actor_id) do %>
+            <button
+              disabled
+              class="shrink-0 text-[10px] md:text-xs font-semibold bg-gray-100 text-gray-500 px-2.5 py-1 md:px-4 md:py-1.5 rounded-lg cursor-default"
+            >
+              Following
+            </button>
+          <% else %>
+            <button
+              phx-click="follow_back"
+              phx-value-user-id={notification.actor_id}
+              class="shrink-0 text-[10px] md:text-xs font-bold bg-orange-500 hover:bg-orange-600 text-white px-2.5 py-1 md:px-4 md:py-1.5 rounded-lg transition cursor-pointer"
+            >
+              Follow Back
+            </button>
+          <% end %>
+        <% else %>
+          <%= if notification.post_id do %>
+            <.link navigate="/timeline" class="shrink-0">
+              <div class="w-11 h-11 bg-gray-100 rounded overflow-hidden">
+                <img src={notification.post.image_path} class="w-full h-full object-cover" />
+              </div>
+            </.link>
+          <% end %>
         <% end %>
       </div>
     <% end %>

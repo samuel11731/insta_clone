@@ -11,9 +11,20 @@ defmodule InstaCloneWeb.TimelineLive.Messages do
         InstaClone.PubSub,
         "user_chat:#{socket.assigns.current_scope.user.id}"
       )
+
+      # Global presence for online indicators
+      Phoenix.PubSub.subscribe(InstaClone.PubSub, "global_presence")
     end
 
     conversations = Chat.list_user_conversations(socket.assigns.current_scope.user.id)
+
+    # Initialize online users from Presence
+    online_users =
+      if connected?(socket) do
+        InstaCloneWeb.Presence.list("global_presence") |> Map.keys() |> MapSet.new()
+      else
+        MapSet.new()
+      end
 
     {:ok,
      socket
@@ -26,7 +37,9 @@ defmodule InstaCloneWeb.TimelineLive.Messages do
      |> assign(:is_recording, false)
      |> assign(:recording_duration, 0)
      |> assign(:audio_preview_ready, false)
-     |> assign(:voice_note_duration, 0)}
+     |> assign(:voice_note_duration, 0)
+     |> assign(:online_users, online_users)
+     |> assign(:typing_user_ids, MapSet.new())}
   end
 
   @impl true
@@ -43,11 +56,20 @@ defmodule InstaCloneWeb.TimelineLive.Messages do
         conversations = Chat.list_user_conversations(socket.assigns.current_scope.user.id)
         if connected?(socket), do: Chat.subscribe(conversation.id)
 
+        # Stop typing indicator for previous conversation if any
+        if old_conv = socket.assigns.active_conversation do
+          Phoenix.PubSub.broadcast(InstaClone.PubSub, "chat:#{old_conv.id}", {:typing_stop, socket.assigns.current_scope.user.id})
+        end
+
+        # Mark as read
+        Chat.mark_messages_as_read(conversation.id, socket.assigns.current_scope.user.id)
+
         {:noreply,
          socket
          |> assign(:conversations, conversations)
          |> assign(:active_conversation, conversation)
-         |> assign(:messages, Chat.list_messages(conversation.id))}
+         |> assign(:messages, Chat.list_messages(conversation.id))
+         |> assign(:typing_user_ids, MapSet.new())}
     end
   end
 
@@ -80,13 +102,30 @@ defmodule InstaCloneWeb.TimelineLive.Messages do
     conversation = Chat.get_conversation!(id)
     if connected?(socket), do: Chat.subscribe(conversation.id)
 
+    # Stop typing indicator for previous conversation if any
+    if old_conv = socket.assigns.active_conversation do
+      Phoenix.PubSub.broadcast(InstaClone.PubSub, "chat:#{old_conv.id}", {:typing_stop, socket.assigns.current_scope.user.id})
+    end
+
+    # Mark as read
+    Chat.mark_messages_as_read(conversation.id, socket.assigns.current_scope.user.id)
+
     {:noreply,
      socket
      |> assign(:active_conversation, conversation)
-     |> assign(:messages, Chat.list_messages(conversation.id))}
+     |> assign(:messages, Chat.list_messages(conversation.id))
+     |> assign(:typing_user_ids, MapSet.new())}
   end
 
   def handle_event("close-conversation", _params, socket) do
+    if conv = socket.assigns.active_conversation do
+      Phoenix.PubSub.broadcast(
+        InstaClone.PubSub,
+        "chat:#{conv.id}",
+        {:typing_stop, socket.assigns.current_scope.user.id}
+      )
+    end
+
     {:noreply,
      socket
      |> assign(:active_conversation, nil)
@@ -117,6 +156,30 @@ defmodule InstaCloneWeb.TimelineLive.Messages do
     end
 
     {:noreply, assign(socket, message_form: to_form(%{"content" => ""}))}
+  end
+
+  def handle_event("typing_start", _params, socket) do
+    if conv = socket.assigns.active_conversation do
+      Phoenix.PubSub.broadcast(
+        InstaClone.PubSub,
+        "chat:#{conv.id}",
+        {:typing_start, socket.assigns.current_scope.user.id}
+      )
+    end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("typing_stop", _params, socket) do
+    if conv = socket.assigns.active_conversation do
+      Phoenix.PubSub.broadcast(
+        InstaClone.PubSub,
+        "chat:#{conv.id}",
+        {:typing_stop, socket.assigns.current_scope.user.id}
+      )
+    end
+
+    {:noreply, socket}
   end
 
   def handle_event("mic-clicked", _params, socket) do
@@ -180,6 +243,14 @@ defmodule InstaCloneWeb.TimelineLive.Messages do
         # It's for the currently open conversation
         messages = socket.assigns.messages ++ [message]
 
+        # Auto mark as read if it's from the other user
+        if message.user_id != socket.assigns.current_scope.user.id do
+          Chat.mark_messages_as_read(
+            socket.assigns.active_conversation.id,
+            socket.assigns.current_scope.user.id
+          )
+        end
+
         # Pull conversation to top of list
         conversations = Chat.list_user_conversations(socket.assigns.current_scope.user.id)
 
@@ -189,6 +260,49 @@ defmodule InstaCloneWeb.TimelineLive.Messages do
         conversations = Chat.list_user_conversations(socket.assigns.current_scope.user.id)
         {:noreply, assign(socket, conversations: conversations)}
     end
+  end
+
+  @impl true
+  def handle_info(:messages_read, socket) do
+    # When messages are read, we need to refresh the messages to show "Seen" status
+    messages =
+      if conv = socket.assigns.active_conversation do
+        Chat.list_messages(conv.id)
+      else
+        socket.assigns.messages
+      end
+
+    {:noreply, assign(socket, messages: messages)}
+  end
+
+  @impl true
+  def handle_info({:typing_start, user_id}, socket) do
+    if user_id != socket.assigns.current_scope.user.id do
+      {:noreply,
+       socket
+       |> assign(typing_user_ids: MapSet.put(socket.assigns.typing_user_ids, user_id))
+       |> push_event("scroll_to_bottom", %{id: "chat-thread"})}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({:typing_stop, user_id}, socket) do
+    {:noreply,
+     socket
+     |> assign(typing_user_ids: MapSet.delete(socket.assigns.typing_user_ids, user_id))
+     |> push_event("scroll_to_bottom", %{id: "chat-thread"})}
+  end
+
+  @impl true
+  def handle_info(%{event: "presence_diff", payload: %{joins: joins, leaves: leaves}}, socket) do
+    online_users =
+      socket.assigns.online_users
+      |> MapSet.union(MapSet.new(Map.keys(joins)))
+      |> MapSet.difference(MapSet.new(Map.keys(leaves)))
+
+    {:noreply, assign(socket, online_users: online_users)}
   end
 
   def handle_info({:conversation_updated, _id}, socket) do

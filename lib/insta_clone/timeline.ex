@@ -359,7 +359,7 @@ defmodule InstaClone.Timeline do
   def create_notification(attrs) do
     # Don't notify if the actor is the recipient
     if attrs.actor_id != attrs.recipient_id do
-      # Check for duplicates (e.g. rapid follow/unfollow/follow)
+      # Check for duplicates
       query =
         from(n in Notification,
           where:

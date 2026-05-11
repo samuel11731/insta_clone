@@ -43,6 +43,7 @@ defmodule InstaCloneWeb.TimelineLive.Index do
       |> assign(:comment_changeset, Timeline.change_comment(%Timeline.Comment{}))
       |> assign(:open_post_menu, nil)
       |> assign(:open_comment_menu, nil)
+      |> assign(:suggested_users, InstaClone.Accounts.list_suggested_users(user))
 
     if connected?(socket) do
       Phoenix.PubSub.subscribe(InstaClone.PubSub, "posts")
@@ -318,6 +319,33 @@ defmodule InstaCloneWeb.TimelineLive.Index do
     end
 
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("follow", %{"user-id" => user_id}, socket) do
+    current_user = socket.assigns.current_scope.user
+
+    case InstaClone.Accounts.follow_user(current_user.id, user_id) do
+      {:ok, _follower} ->
+        {:noreply,
+         socket
+         |> assign(:suggested_users, InstaClone.Accounts.list_suggested_users(current_user))
+         |> put_flash(:info, "Followed user.")}
+
+      {:error, _changeset} ->
+        {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_event("unfollow", %{"user-id" => user_id}, socket) do
+    current_user = socket.assigns.current_scope.user
+    InstaClone.Accounts.unfollow_user(current_user.id, user_id)
+
+    {:noreply,
+     socket
+     |> assign(:suggested_users, InstaClone.Accounts.list_suggested_users(current_user))
+     |> put_flash(:info, "Unfollowed user.")}
   end
 
   @impl true

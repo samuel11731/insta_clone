@@ -29,6 +29,14 @@ defmodule InstaCloneWeb.TimelineLive.Profile do
         Accounts.following?(current_user, profile_user)
       end
 
+    # Does the profile user follow ME back?
+    follows_back =
+      if is_own_profile do
+        false
+      else
+        Accounts.following?(profile_user, current_user)
+      end
+
     # Fetch highlights
     highlights = InstaClone.Timeline.list_user_highlights(profile_user.id)
 
@@ -42,6 +50,7 @@ defmodule InstaCloneWeb.TimelineLive.Profile do
       |> assign(:follower_count, follower_count)
       |> assign(:following_count, following_count)
       |> assign(:is_following, is_following)
+      |> assign(:follows_back, follows_back)
       |> assign(:is_own_profile, is_own_profile)
       |> assign(:show_edit_modal, false)
       |> assign(:profile_form, to_form(Accounts.User.profile_changeset(profile_user, %{})))

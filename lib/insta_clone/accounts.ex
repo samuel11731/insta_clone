@@ -189,10 +189,14 @@ defmodule InstaClone.Accounts do
     |> Repo.insert()
     |> case do
       {:ok, follower} ->
+        # If the person being followed already follows us back, mark as "follow_back"
+        notification_type =
+          if following?(followed_id, follower_id), do: "follow_back", else: "follow"
+
         InstaClone.Timeline.create_notification(%{
           actor_id: follower_id,
           recipient_id: followed_id,
-          type: "follow"
+          type: notification_type
         })
 
         {:ok, follower}
@@ -276,6 +280,76 @@ defmodule InstaClone.Accounts do
       where: f.follower_id == ^user_id
     )
     |> Repo.all()
+  end
+
+  # 7. Suggestions: List users I might want to follow
+  def list_suggested_users(user, limit \\ 5) do
+    # Users I follow
+    following_ids =
+      from(f in Follower, where: f.follower_id == ^user.id, select: f.followed_id)
+      |> Repo.all()
+
+    # Find mutuals: users followed by people I follow, but not by me
+    mutual_query =
+      from u in User,
+        join: f in Follower,
+        on: f.followed_id == u.id,
+        join: my_f in Follower,
+        on: my_f.followed_id == f.follower_id,
+        where: my_f.follower_id == ^user.id,
+        where: u.id != ^user.id and u.id not in ^following_ids,
+        group_by: u.id,
+        select: {u.id, count(f.id)},
+        order_by: [desc: count(f.id)],
+        limit: ^limit
+
+    mutual_results = Repo.all(mutual_query)
+    mutual_ids = Enum.map(mutual_results, &elem(&1, 0))
+
+    # Fetch full user objects for mutuals
+    mutual_users = Repo.all(from u in User, where: u.id in ^mutual_ids)
+
+    # Combine with recent users if needed to fill the limit
+    final_users =
+      if length(mutual_users) < limit do
+        remaining_limit = limit - length(mutual_users)
+
+        other_users =
+          from(u in User,
+            where: u.id != ^user.id and u.id not in ^following_ids and u.id not in ^mutual_ids,
+            order_by: [desc: u.inserted_at],
+            limit: ^remaining_limit
+          )
+          |> Repo.all()
+
+        mutual_users ++ other_users
+      else
+        mutual_users
+      end
+
+    # Attach notes to each suggestion
+    Enum.map(final_users, fn suggestion ->
+      note = get_suggestion_note(user, suggestion)
+      {suggestion, note}
+    end)
+  end
+
+  defp get_suggestion_note(me, them) do
+    # Find one person I follow who also follows them
+    query =
+      from u in User,
+        join: f_them in Follower,
+        on: f_them.follower_id == u.id,
+        join: f_me in Follower,
+        on: f_me.followed_id == u.id,
+        where: f_me.follower_id == ^me.id and f_them.followed_id == ^them.id,
+        select: u.username,
+        limit: 1
+
+    case Repo.one(query) do
+      nil -> "Suggested for you"
+      username -> "Followed by #{username}"
+    end
   end
 
   ## Token helper

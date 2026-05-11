@@ -10,6 +10,7 @@ defmodule InstaClone.Chat.Message do
     field :media_url, :string
     field :media_type, :string, default: "text"
     field :media_duration, :integer
+    field :read_at, :utc_datetime
 
     belongs_to :conversation, InstaClone.Chat.Conversation
     belongs_to :user, InstaClone.Accounts.User
@@ -20,7 +21,15 @@ defmodule InstaClone.Chat.Message do
   @doc false
   def changeset(message, attrs) do
     message
-    |> cast(attrs, [:content, :conversation_id, :user_id, :media_url, :media_type, :media_duration])
+    |> cast(attrs, [
+      :content,
+      :conversation_id,
+      :user_id,
+      :media_url,
+      :media_type,
+      :media_duration,
+      :read_at
+    ])
     |> validate_required([:conversation_id, :user_id])
   end
 end

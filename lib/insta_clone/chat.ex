@@ -105,4 +105,15 @@ defmodule InstaClone.Chat do
 
     {:ok, message}
   end
+
+  def mark_messages_as_read(conversation_id, user_id) do
+    now = DateTime.truncate(DateTime.utc_now(), :second)
+
+    from(m in Message,
+      where: m.conversation_id == ^conversation_id and m.user_id != ^user_id and is_nil(m.read_at)
+    )
+    |> Repo.update_all(set: [read_at: now])
+
+    Phoenix.PubSub.broadcast(InstaClone.PubSub, "chat:#{conversation_id}", :messages_read)
+  end
 end

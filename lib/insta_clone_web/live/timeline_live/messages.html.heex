@@ -1,4 +1,4 @@
-<.mobile_header unread_notifications_count={@unread_notifications_count} />
+
 <div class="flex h-screen bg-white">
   <!-- LHS: Inbox List -->
   <div class={[
@@ -101,11 +101,17 @@
               )
             ]}
           >
-            <.user_avatar
-              src={other_user.avatar_path}
-              username={other_user.username}
-              class="w-12 h-12 rounded-full"
-            />
+            <div class="relative shrink-0">
+              <.user_avatar
+                src={other_user.avatar_path}
+                username={other_user.username}
+                class="w-12 h-12 rounded-full"
+              />
+              <%= if MapSet.member?(@online_users, other_user.id) do %>
+                <div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-orange-500 border-2 border-white rounded-full">
+                </div>
+              <% end %>
+            </div>
             <div class="flex flex-col min-w-0">
               <span class="font-semibold text-sm text-gray-900 truncate">
                 {other_user.username}
@@ -173,11 +179,17 @@
             navigate={"/profile/#{active_other_user.username}"}
             class="flex items-center gap-3 group"
           >
-            <.user_avatar
-              src={active_other_user.avatar_path}
-              username={active_other_user.username}
-              class="w-8 h-8 md:w-10 md:h-10 rounded-full group-hover:opacity-80 transition-opacity"
-            />
+            <div class="relative">
+              <.user_avatar
+                src={active_other_user.avatar_path}
+                username={active_other_user.username}
+                class="w-8 h-8 md:w-10 md:h-10 rounded-full group-hover:opacity-80 transition-opacity"
+              />
+              <%= if MapSet.member?(@online_users, active_other_user.id) do %>
+                <div class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-orange-500 border-2 border-white rounded-full">
+                </div>
+              <% end %>
+            </div>
             <span class="font-bold text-sm md:text-base truncate max-w-[150px] md:max-w-none group-hover:text-gray-600 transition-colors">
               {active_other_user.username}
             </span>
@@ -248,7 +260,7 @@
             />
           </.link>
           <h2 class="text-lg md:text-xl font-bold">{active_other_user.username}</h2>
-          <p class="text-gray-500 text-xs md:text-sm">InstaClone</p>
+          <p class="text-gray-500 text-xs md:text-sm">ConnectKe</p>
           <.link
             navigate={"/profile/#{active_other_user.username}"}
             class="mt-4 bg-gray-100 hover:bg-gray-200 px-4 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition-colors"
@@ -321,6 +333,24 @@
                 {message.content}
               <% end %>
             </div>
+          </div>
+          <%= if is_me and message.read_at do %>
+            <div class="flex justify-end pr-2 mb-2">
+              <span class="text-[10px] text-gray-400 font-medium">Seen</span>
+            </div>
+          <% end %>
+        <% end %>
+
+        <%= if MapSet.member?(@typing_user_ids, active_other_user.id) do %>
+          <div class="flex items-center gap-2 text-orange-500 italic text-xs animate-pulse mb-4 ml-10">
+            <span class="flex gap-1">
+              <span class="w-1.5 h-1.5 bg-orange-500 rounded-full animate-bounce"></span>
+              <span class="w-1.5 h-1.5 bg-orange-500 rounded-full animate-bounce [animation-delay:0.2s]">
+              </span>
+              <span class="w-1.5 h-1.5 bg-orange-500 rounded-full animate-bounce [animation-delay:0.4s]">
+              </span>
+            </span>
+            {active_other_user.username} is typing...
           </div>
         <% end %>
       </div>
@@ -448,6 +478,8 @@
                   value={@message_form.params["content"]}
                   placeholder="Message..."
                   autocomplete="off"
+                  phx-hook="TypingIndicator"
+                  id="message-input"
                   class="w-full border-transparent focus:border-transparent focus:ring-0 px-0 outline-none placeholder:text-gray-400 text-sm"
                 />
                 <button type="submit" class="hidden">Send</button>
