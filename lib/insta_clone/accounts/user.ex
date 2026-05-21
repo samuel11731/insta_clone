@@ -30,7 +30,10 @@ defmodule InstaClone.Accounts.User do
   end
 
   def registration_changeset(user, attrs, opts \\ []) do
-    attrs = maybe_put_username(attrs)
+    attrs =
+      attrs
+      |> maybe_put_username()
+      |> maybe_put_full_name()
 
     user
     |> cast(attrs, [:email, :password, :username, :full_name])
@@ -43,6 +46,19 @@ defmodule InstaClone.Accounts.User do
     )
     |> unsafe_validate_unique(:username, InstaClone.Repo)
     |> unique_constraint(:username)
+  end
+
+  defp maybe_put_full_name(attrs) do
+    username = Map.get(attrs, "username") || Map.get(attrs, :username)
+    full_name = Map.get(attrs, "full_name") || Map.get(attrs, :full_name)
+
+    if full_name || is_nil(username) do
+      attrs
+    else
+      if is_map_key(attrs, "username"),
+        do: Map.put(attrs, "full_name", username),
+        else: Map.put(attrs, :full_name, username)
+    end
   end
 
   defp maybe_put_username(attrs) do

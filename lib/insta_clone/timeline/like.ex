@@ -8,6 +8,7 @@ defmodule InstaClone.Timeline.Like do
     belongs_to :post, InstaClone.Timeline.Post
     timestamps()
   end
+
   @doc false
   def changeset(like, attrs) do
     like

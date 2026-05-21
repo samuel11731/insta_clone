@@ -53,11 +53,11 @@ defmodule InstaCloneWeb.Router do
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
       live "/timeline", TimelineLive.Index, :index
-      live "/explore", TimelineLive.Explore, :index
-      live "/messages", TimelineLive.Messages, :index
-      live "/notifications", TimelineLive.Notifications, :index
-      live "/profile", TimelineLive.Profile, :index
-      live "/profile/:username", TimelineLive.Profile, :index
+      live "/explore", ExploreLive.Index, :index
+      live "/messages", MessagesLive.Index, :index
+      live "/notifications", NotificationsLive.Index, :index
+      live "/profile", ProfileLive.Index, :index
+      live "/profile/:username", ProfileLive.Index, :index
     end
 
     post "/users/update-password", UserSessionController, :update_password
@@ -83,7 +83,7 @@ defmodule InstaCloneWeb.Router do
 
     live_session :username_profile,
       on_mount: [{InstaCloneWeb.UserAuth, :require_authenticated}] do
-      live "/:username", TimelineLive.Profile, :index
+      live "/:username", ProfileLive.Index, :index
     end
   end
 end

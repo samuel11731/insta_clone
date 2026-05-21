@@ -35,9 +35,9 @@ defmodule InstaCloneWeb.UserLive.Registration do
               class="bg-gray-50 border-gray-300 text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#FD4F00] focus:border-[#FD4F00] p-2 w-full rounded-md"
             />
             <.input
-              field={@form[:full_name]}
+              field={@form[:username]}
               type="text"
-              placeholder="Full Name"
+              placeholder="Username"
               required
               class="bg-gray-50 border-gray-300 text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#FD4F00] focus:border-[#FD4F00] p-2 w-full rounded-md"
             />

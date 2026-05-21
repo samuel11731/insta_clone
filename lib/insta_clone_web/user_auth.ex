@@ -261,6 +261,7 @@ defmodule InstaCloneWeb.UserAuth do
 
       if Phoenix.LiveView.connected?(socket) do
         InstaClone.Timeline.subscribe_notifications(user_id)
+        InstaClone.Chat.subscribe_user_chats(user_id)
 
         InstaCloneWeb.Presence.track(self(), "global_presence", user_id, %{
           online_at: inspect(DateTime.utc_now())
@@ -268,25 +269,41 @@ defmodule InstaCloneWeb.UserAuth do
       end
 
       socket =
-        Phoenix.Component.assign_new(socket, :unread_notifications_count, fn ->
+        socket
+        |> Phoenix.Component.assign_new(:unread_notifications_count, fn ->
           InstaClone.Timeline.count_unread_notifications(user_id)
         end)
+        |> Phoenix.Component.assign_new(:unread_messages_count, fn ->
+          InstaClone.Chat.count_unread_messages(user_id)
+        end)
 
-      Phoenix.LiveView.attach_hook(socket, :notifications_handler, :handle_info, fn
-        {:new_notification, _}, socket ->
-          count = InstaClone.Timeline.count_unread_notifications(user_id)
-          {:cont, Phoenix.Component.assign(socket, :unread_notifications_count, count)}
+      if Map.has_key?(socket.private, :lifecycle) do
+        Phoenix.LiveView.attach_hook(socket, :notifications_handler, :handle_info, fn
+          {:new_notification, _}, socket ->
+            count = InstaClone.Timeline.count_unread_notifications(user_id)
+            {:cont, Phoenix.Component.assign(socket, :unread_notifications_count, count)}
 
-        {:notification_deleted, _}, socket ->
-          count = InstaClone.Timeline.count_unread_notifications(user_id)
-          {:cont, Phoenix.Component.assign(socket, :unread_notifications_count, count)}
+          {:notification_deleted, _}, socket ->
+            count = InstaClone.Timeline.count_unread_notifications(user_id)
+            {:cont, Phoenix.Component.assign(socket, :unread_notifications_count, count)}
 
-        :notifications_read, socket ->
-          {:cont, Phoenix.Component.assign(socket, :unread_notifications_count, 0)}
+          :notifications_read, socket ->
+            {:cont, Phoenix.Component.assign(socket, :unread_notifications_count, 0)}
 
-        _message, socket ->
-          {:cont, socket}
-      end)
+          {:new_global_message, _}, socket ->
+            count = InstaClone.Chat.count_unread_messages(user_id)
+            {:cont, Phoenix.Component.assign(socket, :unread_messages_count, count)}
+
+          :messages_read, socket ->
+            count = InstaClone.Chat.count_unread_messages(user_id)
+            {:cont, Phoenix.Component.assign(socket, :unread_messages_count, count)}
+
+          _message, socket ->
+            {:cont, socket}
+        end)
+      else
+        socket
+      end
     else
       socket
     end

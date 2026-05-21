@@ -44,6 +44,7 @@ defmodule InstaCloneWeb.TimelineLive.Index do
       |> assign(:open_post_menu, nil)
       |> assign(:open_comment_menu, nil)
       |> assign(:suggested_users, InstaClone.Accounts.list_suggested_users(user))
+      |> assign(:caption, "")
 
     if connected?(socket) do
       Phoenix.PubSub.subscribe(InstaClone.PubSub, "posts")
@@ -51,6 +52,18 @@ defmodule InstaCloneWeb.TimelineLive.Index do
     end
 
     {:ok, socket}
+  end
+
+  @impl true
+  def handle_params(params, _url, socket) do
+    socket =
+      if params["create"] == "true" do
+        assign(socket, :show_modal, true)
+      else
+        socket
+      end
+
+    {:noreply, socket}
   end
 
   @impl true
@@ -92,6 +105,11 @@ defmodule InstaCloneWeb.TimelineLive.Index do
   @impl true
   def handle_event("close-modal", %{}, socket) do
     {:noreply, assign(socket, :show_modal, false)}
+  end
+
+  @impl true
+  def handle_event("validate", %{"caption" => caption}, socket) do
+    {:noreply, assign(socket, :caption, caption)}
   end
 
   @impl true
@@ -224,7 +242,9 @@ defmodule InstaCloneWeb.TimelineLive.Index do
   end
 
   @impl true
-  def handle_event("save", %{"caption" => caption}, socket) do
+  def handle_event("save", params, socket) do
+    caption = Map.get(params, "caption", socket.assigns.caption)
+
     try do
       image_paths =
         consume_uploaded_entries(socket, :photo, fn %{path: path}, entry ->
@@ -282,6 +302,7 @@ defmodule InstaCloneWeb.TimelineLive.Index do
             {:noreply,
              socket
              |> assign(:show_modal, false)
+             |> assign(:caption, "")
              |> put_flash(:info, "Post shared!")}
 
           {:error, changeset} ->

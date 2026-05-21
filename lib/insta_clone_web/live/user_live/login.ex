@@ -28,9 +28,9 @@ defmodule InstaCloneWeb.UserLive.Login do
                 <.input
                   readonly={!!@current_scope}
                   field={f[:email]}
-                  type="email"
-                  placeholder="Email"
-                  autocomplete="email"
+                  type="text"
+                  placeholder="Username or email"
+                  autocomplete="username"
                   required
                   class="bg-gray-50 border-gray-300 text-gray-900 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#FD4F00] focus:border-[#FD4F00] p-2 w-full rounded-md"
                 />
@@ -105,9 +105,5 @@ defmodule InstaCloneWeb.UserLive.Login do
      socket
      |> put_flash(:info, info)
      |> push_navigate(to: ~p"/users/log-in")}
-  end
-
-  defp local_mail_adapter? do
-    Application.get_env(:insta_clone, InstaClone.Mailer)[:adapter] == Swoosh.Adapters.Local
   end
 end

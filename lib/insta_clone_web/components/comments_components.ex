@@ -1,4 +1,4 @@
-defmodule InstaCloneWeb.TimelineLive.Components do
+defmodule InstaCloneWeb.CommentsComponents do
   use InstaCloneWeb, :html
 
   attr :comments, :list, required: true
@@ -70,15 +70,15 @@ defmodule InstaCloneWeb.TimelineLive.Components do
                 muted
                 loop
                 playsinline
-                class="w-full h-full object-cover"
+                class="w-full h-full object-contain"
               />
             <% else %>
-              <img src={@active_post.image_path} class="w-full h-full object-cover" />
+              <img src={@active_post.image_path} class="w-full h-full object-contain" />
             <% end %>
           </div>
 
           <% # Right Column: Details & Comments %>
-          <div class="w-[400px] flex flex-col bg-white border-l border-gray-100">
+          <div class="w-[400px] shrink-0 flex flex-col bg-white border-l border-gray-100">
             <% # Header: User Info %>
             <div class="flex items-center justify-between p-4 border-b border-gray-100">
               <div class="flex items-center gap-3">

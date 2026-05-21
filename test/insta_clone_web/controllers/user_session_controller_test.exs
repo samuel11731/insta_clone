@@ -18,13 +18,12 @@ defmodule InstaCloneWeb.UserSessionControllerTest do
         })
 
       assert get_session(conn, :user_token)
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/timeline"
 
       # Now do a logged in request and assert on the menu
-      conn = get(conn, ~p"/")
+      conn = get(conn, ~p"/timeline")
       response = html_response(conn, 200)
-      assert response =~ user.email
-      assert response =~ ~p"/users/settings"
+      assert response =~ user.username
       assert response =~ ~p"/users/log-out"
     end
 
@@ -41,7 +40,7 @@ defmodule InstaCloneWeb.UserSessionControllerTest do
         })
 
       assert conn.resp_cookies["_insta_clone_web_user_remember_me"]
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/timeline"
     end
 
     test "logs the user in with return to", %{conn: conn, user: user} do
@@ -61,13 +60,33 @@ defmodule InstaCloneWeb.UserSessionControllerTest do
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Welcome back!"
     end
 
+    test "logs the user in with username", %{conn: conn, user: user} do
+      user = set_password(user)
+
+      conn =
+        post(conn, ~p"/users/log-in", %{
+          "user" => %{"email" => user.username, "password" => valid_user_password()}
+        })
+
+      assert get_session(conn, :user_token)
+      assert redirected_to(conn) == ~p"/timeline"
+
+      # Now do a logged in request and assert on the menu
+      conn = get(conn, ~p"/timeline")
+      response = html_response(conn, 200)
+      assert response =~ user.username
+      assert response =~ ~p"/users/log-out"
+    end
+
     test "redirects to login page with invalid credentials", %{conn: conn, user: user} do
       conn =
         post(conn, ~p"/users/log-in?mode=password", %{
           "user" => %{"email" => user.email, "password" => "invalid_password"}
         })
 
-      assert Phoenix.Flash.get(conn.assigns.flash, :error) == "Invalid email or password"
+      assert Phoenix.Flash.get(conn.assigns.flash, :error) ==
+               "Invalid email, username, or password"
+
       assert redirected_to(conn) == ~p"/users/log-in"
     end
   end
@@ -82,17 +101,19 @@ defmodule InstaCloneWeb.UserSessionControllerTest do
         })
 
       assert get_session(conn, :user_token)
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/timeline"
 
       # Now do a logged in request and assert on the menu
-      conn = get(conn, ~p"/")
+      conn = get(conn, ~p"/timeline")
       response = html_response(conn, 200)
-      assert response =~ user.email
-      assert response =~ ~p"/users/settings"
+      assert response =~ user.username
       assert response =~ ~p"/users/log-out"
     end
 
     test "confirms unconfirmed user", %{conn: conn, unconfirmed_user: user} do
+      {:ok, user} =
+        Ecto.Changeset.change(user, %{hashed_password: nil}) |> InstaClone.Repo.update()
+
       {token, _hashed_token} = generate_user_magic_link_token(user)
       refute user.confirmed_at
 
@@ -103,16 +124,15 @@ defmodule InstaCloneWeb.UserSessionControllerTest do
         })
 
       assert get_session(conn, :user_token)
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/timeline"
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "User confirmed successfully."
 
       assert Accounts.get_user!(user.id).confirmed_at
 
       # Now do a logged in request and assert on the menu
-      conn = get(conn, ~p"/")
+      conn = get(conn, ~p"/timeline")
       response = html_response(conn, 200)
-      assert response =~ user.email
-      assert response =~ ~p"/users/settings"
+      assert response =~ user.username
       assert response =~ ~p"/users/log-out"
     end
 

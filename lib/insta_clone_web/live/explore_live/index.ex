@@ -1,4 +1,4 @@
-defmodule InstaCloneWeb.TimelineLive.Explore do
+defmodule InstaCloneWeb.ExploreLive.Index do
   use InstaCloneWeb, :live_view
 
   alias InstaClone.Timeline

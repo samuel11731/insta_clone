@@ -78,11 +78,23 @@ defmodule InstaClone.Chat do
         msg = Repo.preload(msg, :user)
         broadcast({:ok, msg}, msg.conversation_id)
         touch_conversation(msg.conversation_id)
+        broadcast_global_message(msg)
         {:ok, msg}
 
       error ->
         error
     end
+  end
+
+  def count_unread_messages(user_id) do
+    Message
+    |> join(:inner, [m], c in Conversation, on: m.conversation_id == c.id)
+    |> where(
+      [m, c],
+      (c.user1_id == ^user_id or c.user2_id == ^user_id) and m.user_id != ^user_id and
+        is_nil(m.read_at)
+    )
+    |> Repo.aggregate(:count, :id)
   end
 
   defp touch_conversation(conversation_id) do
@@ -96,6 +108,10 @@ defmodule InstaClone.Chat do
     Phoenix.PubSub.subscribe(InstaClone.PubSub, "chat:#{conversation_id}")
   end
 
+  def subscribe_user_chats(user_id) do
+    Phoenix.PubSub.subscribe(InstaClone.PubSub, "user_chats:#{user_id}")
+  end
+
   defp broadcast({:ok, message}, conversation_id) do
     Phoenix.PubSub.broadcast(
       InstaClone.PubSub,
@@ -104,6 +120,21 @@ defmodule InstaClone.Chat do
     )
 
     {:ok, message}
+  end
+
+  defp broadcast_global_message(message) do
+    conversation = get_conversation!(message.conversation_id)
+
+    recipient_id =
+      if conversation.user1_id == message.user_id,
+        do: conversation.user2_id,
+        else: conversation.user1_id
+
+    Phoenix.PubSub.broadcast(
+      InstaClone.PubSub,
+      "user_chats:#{recipient_id}",
+      {:new_global_message, message}
+    )
   end
 
   def mark_messages_as_read(conversation_id, user_id) do
@@ -115,5 +146,11 @@ defmodule InstaClone.Chat do
     |> Repo.update_all(set: [read_at: now])
 
     Phoenix.PubSub.broadcast(InstaClone.PubSub, "chat:#{conversation_id}", :messages_read)
+
+    Phoenix.PubSub.broadcast(
+      InstaClone.PubSub,
+      "user_chats:#{user_id}",
+      :messages_read
+    )
   end
 end

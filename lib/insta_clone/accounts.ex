@@ -45,6 +45,17 @@ defmodule InstaClone.Accounts do
     if User.valid_password?(user, password), do: user
   end
 
+  def get_user_by_email_or_username_and_password(email_or_username, password)
+      when is_binary(email_or_username) and is_binary(password) do
+    user =
+      Repo.one(
+        from u in User,
+          where: u.email == ^email_or_username or u.username == ^email_or_username
+      )
+
+    if User.valid_password?(user, password), do: user
+  end
+
   def get_user!(id), do: Repo.get!(User, id)
 
   ## User registration

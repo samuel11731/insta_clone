@@ -8,6 +8,7 @@ defmodule InstaClone.Timeline.CommentLike do
     belongs_to :comment, InstaClone.Timeline.Comment
     timestamps(type: :utc_datetime)
   end
+
   def changeset(comment_like, attrs) do
     comment_like
     |> cast(attrs, [:user_id, :comment_id])

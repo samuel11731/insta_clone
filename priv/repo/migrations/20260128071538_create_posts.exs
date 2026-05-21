@@ -6,7 +6,7 @@ defmodule InstaClone.Repo.Migrations.CreatePosts do
       add :id, :binary_id, primary_key: true
       add :caption, :text
       add :image_path, :string
-  
+
       add :user_id, references(:users, type: :binary_id, on_delete: :delete_all)
 
       timestamps(type: :utc_datetime)

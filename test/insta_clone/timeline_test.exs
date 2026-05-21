@@ -29,7 +29,12 @@ defmodule InstaClone.TimelineTest do
     end
 
     test "create_post/2 with valid data creates a post" do
-      valid_attrs = %{user_id: "7488a646-e31f-11e4-aace-600308960662", caption: "some caption", image_path: "some image_path"}
+      valid_attrs = %{
+        user_id: "7488a646-e31f-11e4-aace-600308960662",
+        caption: "some caption",
+        image_path: "some image_path"
+      }
+
       scope = user_scope_fixture()
 
       assert {:ok, %Post{} = post} = Timeline.create_post(scope, valid_attrs)
@@ -47,7 +52,12 @@ defmodule InstaClone.TimelineTest do
     test "update_post/3 with valid data updates the post" do
       scope = user_scope_fixture()
       post = post_fixture(scope)
-      update_attrs = %{user_id: "7488a646-e31f-11e4-aace-600308960668", caption: "some updated caption", image_path: "some updated image_path"}
+
+      update_attrs = %{
+        user_id: "7488a646-e31f-11e4-aace-600308960668",
+        caption: "some updated caption",
+        image_path: "some updated image_path"
+      }
 
       assert {:ok, %Post{} = post} = Timeline.update_post(scope, post, update_attrs)
       assert post.user_id == "7488a646-e31f-11e4-aace-600308960668"
